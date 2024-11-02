@@ -1,37 +1,47 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { useFonts } from 'expo-font';
-import { Stack } from 'expo-router';
-import * as SplashScreen from 'expo-splash-screen';
-import { useEffect } from 'react';
-import 'react-native-reanimated';
+import { AuthProvider, useAuth } from "@/context/authContext"; // Ensure you import useAuth
+import { Slot, Stack } from "expo-router";
+import React from "react";
+import { Text } from "react-native";
 
-import { useColorScheme } from '@/hooks/useColorScheme';
+const RootLayoutContent = () => {
+  const { isLoading, user } = useAuth();
 
-// Prevent the splash screen from auto-hiding before asset loading is complete.
-SplashScreen.preventAutoHideAsync();
+  // Show a loading indicator or the login screen while checking auth state
+  if (isLoading) {
+    return <Text>Loading...</Text>; // You can replace this with a spinner or loading component
+  }
 
-export default function RootLayout() {
-  const colorScheme = useColorScheme();
-  const [loaded] = useFonts({
-    SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
-  });
-
-  useEffect(() => {
-    if (loaded) {
-      SplashScreen.hideAsync();
+  // Determine the appropriate screen based on user role
+  let screenName;
+  if (user) {
+    switch (user.role) {
+      case "ADMIN":
+        screenName = "(app)/admin/dashboard";
+        break;
+      case "SALESPERSON":
+        screenName = "(app)/salesperson/dashboard";
+        break;
+      case "DISTRIBUTOR":
+        screenName = "(app)/distributor/dashboard";
+        break;
+      default:
+        screenName = "(auth)/login"; // Fallback in case of an unknown role
     }
-  }, [loaded]);
-
-  if (!loaded) {
-    return null;
+  } else {
+    screenName = "(auth)/login"; // No user means redirect to login
   }
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="+not-found" />
-      </Stack>
-    </ThemeProvider>
+    <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name={screenName} />
+    </Stack>
+  );
+};
+
+export default function RootLayout() {
+  return (
+    <AuthProvider>
+      <RootLayoutContent />
+    </AuthProvider>
   );
 }
