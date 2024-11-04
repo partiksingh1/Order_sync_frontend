@@ -357,12 +357,12 @@ const CreateProductForm = () => {
               disabled={imageUploading}
             >
               {imageUploading ? (
-                <ActivityIndicator color="#007AFF" />
+                <ActivityIndicator color="#9b86ec" />
               ) : image ? (
                 <Image source={{ uri: image }} style={styles.imagePreview} />
               ) : (
                 <View style={styles.uploadPlaceholder}>
-                  <Ionicons name="cloud-upload" size={40} color="#007AFF" />
+                  <Ionicons name="cloud-upload" size={40} color="#9b86ec" />
                   <Text style={styles.uploadText}>Upload Image</Text>
                 </View>
               )}
@@ -533,7 +533,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFF',
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#E5E5EA',
+    borderColor: '#9b86ec',
     overflow: 'hidden',
   },
   picker: {
@@ -568,7 +568,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   uploadText: {
-    color: '#007AFF',
+    color: '#9b86ec',
     marginTop: 8,
     fontSize: 16,
   },
@@ -613,7 +613,7 @@ const styles = StyleSheet.create({
     borderStyle: 'dashed',
   },
   addButtonText: {
-    color: '#007AFF',
+    color: '#9b86ec',
     marginLeft: 8,
     fontSize: 16,
     fontWeight: '500',

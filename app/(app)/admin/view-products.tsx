@@ -304,8 +304,6 @@ const ProductList = () => {
       setFilteredProducts(response.data);
       setLoading(false);
     } catch (error) {
-      console.error('Error fetching products:', error);
-      Alert.alert('Error', 'Failed to fetch products. Please try again.');
       setLoading(false);
     }
   }, []);
@@ -347,7 +345,6 @@ const ProductList = () => {
               await fetchProducts();
               Alert.alert('Success', 'Product deleted successfully');
             } catch (error) {
-              console.error('Error deleting product:', error);
               Alert.alert('Error', 'Failed to delete product. Please try again.');
             } finally {
               setLoading(false);
@@ -386,7 +383,6 @@ const ProductList = () => {
       Alert.alert('Success', 'Product updated successfully');
       setModalVisible(false);
     } catch (error) {
-      console.error('Error updating product:', error);
       Alert.alert('Error', 'Failed to update product. Please try again.');
     } finally {
       setLoading(false);
@@ -410,7 +406,6 @@ const ProductList = () => {
       setVariantModalVisible(false);
       setVariantData({});
     } catch (error) {
-      console.error('Error adding variant:', error);
       Alert.alert('Error', 'Failed to add variant. Please try again.');
     } finally {
       setLoading(false);
@@ -468,13 +463,6 @@ const ProductList = () => {
           <Ionicons name="arrow-back" size={24} color="#000" />
         </TouchableOpacity>
         <Text style={styles.title}>Products</Text>
-        <TouchableOpacity
-          onPress={() => router.replace("/(app)/admin/create-product")}
-          style={styles.addButton}
-          activeOpacity={0.7}
-        >
-          <Ionicons name="add" size={24} color="#fff" />
-        </TouchableOpacity>
       </View>
 
       <SearchBar onSearch={handleSearch} />
@@ -572,6 +560,13 @@ const ProductList = () => {
           </View>
         </View>
       </Modal>
+      <TouchableOpacity
+          onPress={() => router.replace("/(app)/admin/create-product")}
+          style={styles.addButton}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="add" size={24} color="#fff" />
+        </TouchableOpacity>
     </SafeAreaView>
   );
 };
@@ -604,13 +599,15 @@ const styles = StyleSheet.create({
     color: '#333',
   },
   addButton: {
-    backgroundColor: '#007AFF',
+    margin:10,
+    backgroundColor: '#9b86ec',
     borderRadius: 20,
-    width: 40,
-    height: 40,
+    width: 50,
+    height: 50,
     justifyContent: 'center',
     alignItems: 'center',
     elevation: 2,
+    flexDirection: 'row',
   },
   searchContainer: {
     flexDirection: 'row',

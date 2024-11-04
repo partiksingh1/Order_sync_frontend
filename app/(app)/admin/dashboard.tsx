@@ -75,7 +75,6 @@ const buttonCategories: CategoryData[] = [
         description: 'View and manage all orders',
         action: 'view-orders',
         icon: 'cart',
-        badge: '12',
       },
       {
         label: 'Distributors',
@@ -121,7 +120,7 @@ export const AdminDashboard = () => {
     >
       <View style={styles.buttonContent}>
         <View style={styles.iconContainer}>
-          <Ionicons name={button.icon} size={24} color="#007AFF" />
+          <Ionicons name={button.icon} size={24} color="#9B86EC" />
           {button.badge && (
             <View style={styles.badge}>
               <Text style={styles.badgeText}>{button.badge}</Text>
@@ -132,7 +131,7 @@ export const AdminDashboard = () => {
           <Text style={styles.buttonText}>{button.label}</Text>
           <Text style={styles.description}>{button.description}</Text>
         </View>
-        <Ionicons name="chevron-forward" size={24} color="#999" />
+        <Ionicons name="chevron-forward" size={24} color="#9B86EC" />
       </View>
     </TouchableOpacity>
   );
@@ -140,7 +139,7 @@ export const AdminDashboard = () => {
   const renderCategory = (category: CategoryData) => (
     <View key={category.title} style={styles.category}>
       <View style={styles.categoryHeader}>
-        <Ionicons name={category.icon} size={24} color="#007AFF" />
+        <Ionicons name={category.icon} size={24} color="#9B86EC" />
         <Text style={styles.categoryTitle}>{category.title}</Text>
       </View>
       <View style={styles.buttonGrid}>
