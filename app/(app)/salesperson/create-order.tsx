@@ -144,7 +144,6 @@ const CreateOrder = () => {
         setDistributors(distributorsResponse.data);
       } catch (error) {
         Alert.alert('Error', 'Could not fetch data. Please try again later.');
-        console.log(error);
       }
     };
 
@@ -364,7 +363,7 @@ const CreateOrder = () => {
                   <Text style={styles.variantName}>Variant: {item.variantName}</Text>
                 )}
                 <Text style={styles.itemPrice}>
-                  ${item.price} × {item.quantity} = ${(item.price * item.quantity).toFixed(2)}
+                  Rs.{item.price} × {item.quantity} = Rs.{(item.price * item.quantity).toFixed(2)}
                 </Text>
               </View>
               <TouchableOpacity
@@ -391,7 +390,7 @@ const CreateOrder = () => {
         {/* Total Amount */}
         <View style={styles.totalSection}>
           <Text style={styles.totalLabel}>Total Amount:</Text>
-          <Text style={styles.totalAmount}>${formData.totalAmount.toFixed(2)}</Text>
+          <Text style={styles.totalAmount}>Rs.{formData.totalAmount.toFixed(2)}</Text>
         </View>
 
         {/* Submit Button */}
@@ -451,7 +450,7 @@ const CreateOrder = () => {
                   >
                     <Text style={styles.productName}>{item.name}</Text>
                     <Text style={styles.productPrice}>
-                      ${item.distributorPrice.toFixed(2)}
+                      Rs.{item.distributorPrice.toFixed(2)}
                     </Text>
                   </TouchableOpacity>
                 )}
@@ -474,7 +473,7 @@ const CreateOrder = () => {
                       {item.variantName}: {item.variantValue}
                     </Text>
                     <Text style={styles.variantPrice}>
-                      ${item.price.toFixed(2)}
+                      Rs.{item.price.toFixed(2)}
                     </Text>
                   </TouchableOpacity>
                 )}

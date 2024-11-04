@@ -34,8 +34,6 @@ const LoginScreen = () => {
 
       if (response.status === 200) {
         const { token, user } = response.data;
-        console.log("token",token);
-        console.log("user",user);
         
 
         // Use the login function from context

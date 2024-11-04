@@ -17,12 +17,14 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "foregroundImage": "./assets/images/icon.png",
         "backgroundColor": "#ffffff"
       },
       "permissions": [
-         "READ_EXTERNAL_STORAGE",
-        "WRITE_EXTERNAL_STORAGE"
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
       ],
       "package": "com.partiksingh.salesApp"
     },
@@ -46,7 +48,7 @@
     },
     "extra": {
       "eas": {
-        "projectId": "42a69a53-6bf7-4728-8c38-e34c4b645394"
+        "projectId": "b53a242f-dd65-46cd-85f0-8edef8dabe54"
       }
     }
   }

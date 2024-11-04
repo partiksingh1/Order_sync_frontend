@@ -420,9 +420,7 @@ const OrderList = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
     backgroundColor: '#FFF',
-    paddingTop: 50,
   },
   loadingContainer: {
     flex: 1,
@@ -438,16 +436,18 @@ const styles = StyleSheet.create({
 header: {
   flexDirection: 'row',
   alignItems: 'center',
-  marginBottom: 20,
+  padding: 20,
+  paddingTop: 50,
 },
 backButton: {
-    marginRight: 16,
+  padding: 8,
 },
 title: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333',
-    flex: 1,
+  fontSize: 24,
+  fontWeight: 'bold',
+  flex: 1,
+  textAlign: 'center',
+  marginRight: 40, // Compensate for back button
 },
 filterSection: {
     backgroundColor: '#fff',

@@ -22,7 +22,7 @@ export const HomeScreen = () => {
 
       {/* Login Button */}
       <TouchableOpacity style={styles.loginButton} onPress={() => router.replace('/(auth)/login')}>
-        <Text style={styles.loginButtonText} >Login</Text>
+        <Text style={styles.loginButtonText} >Start</Text>
       </TouchableOpacity>
     </SafeAreaView>
   );

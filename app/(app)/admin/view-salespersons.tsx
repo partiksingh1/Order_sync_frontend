@@ -27,7 +27,7 @@ type Salesperson = {
 };
 
 const API_URL = `${process.env.EXPO_PUBLIC_API_URL}/admin/get-salesperson`;
-const DELETE_URL = (id: string) => `http://10.10.10.65:3000/api/v1/admin/salesperson/${id}`;
+// const DELETE_URL = (id: string) => `${process.env.EXPO_PUBLIC_API_URL}/admin/salesperson/${id}`;
 
 const ViewSalesperson = () => {
   const router = useRouter();
@@ -74,8 +74,8 @@ const ViewSalesperson = () => {
           text: "OK", 
           onPress: async () => {
             try {
-              await axios.delete(DELETE_URL(id));
-              Alert.alert('Success', 'Salesperson deleted successfully');
+              // await axios.delete(DELETE_URL(id));
+              Alert.alert('Coming soon', 'This feature is coming soon.....');
               fetchSalespeople();
             } catch (error) {
               console.error('Error deleting salesperson:', error);
@@ -96,7 +96,7 @@ const ViewSalesperson = () => {
         <Text style={styles.detail}>Email: {item.email}</Text>
       </TouchableOpacity>
       <View style={styles.buttonContainer}>
-        <TouchableOpacity style={styles.editButton} onPress={() => {/* Add edit functionality */}}>
+        <TouchableOpacity style={styles.editButton} onPress={() =>handleDelete(item.id)}>
           <Text style={styles.buttonText}>Edit</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.deleteButton} onPress={() => handleDelete(item.id)}>

@@ -220,7 +220,6 @@ const CreateProductForm = () => {
         setShowCategoryModal(false);
       }
     } catch (error) {
-      console.log('Error creating category:', error);
       Alert.alert('Error', 'Failed to create category. Please try again.');
     }
   };

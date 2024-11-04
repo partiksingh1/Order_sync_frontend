@@ -59,7 +59,7 @@ const DistributorOrdersScreen = () => {
   const fetchOrders = async () => {
     try {
         const token = await AsyncStorage.getItem('token');
-        const response = await axios.get('http://10.10.10.65:3000/api/v1/distributor/get-orders', {
+        const response = await axios.get(`${process.env.EXPO_PUBLIC_API_URL}/distributor/get-orders`, {
             headers: {
                 Authorization: `Bearer ${token}`,
             },

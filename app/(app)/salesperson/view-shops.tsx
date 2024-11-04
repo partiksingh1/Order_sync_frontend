@@ -152,18 +152,6 @@ const ShopList = () => {
     </TouchableOpacity>
   );
 
-  const renderHeader = () => (
-    <View style={styles.header}>
-      <TouchableOpacity
-        onPress={() => router.replace('/(app)/salesperson/dashboard')}
-        style={styles.backButton}
-      >
-        <Ionicons name="arrow-back" size={24} color="#000" />
-      </TouchableOpacity>
-      <Text style={styles.title}>Shops</Text>
-    </View>
-  );
-
   const renderSearchBar = () => (
     <View style={styles.searchContainer}>
       <Ionicons name="search" size={20} color="#666" style={styles.searchIcon} />
@@ -196,8 +184,16 @@ const ShopList = () => {
 
   return (
     <SafeAreaView style={styles.container}>
+      <View style={styles.header}>
+          <TouchableOpacity
+            onPress={() => router.replace('/(app)/salesperson/dashboard')}
+            style={styles.backButton}
+          >
+            <Ionicons name="arrow-back" size={24} color="black" />
+          </TouchableOpacity>
+          <Text style={styles.title}>Your Shops</Text>
+        </View>
       <StatusBar barStyle="dark-content" backgroundColor="#F5F5F5" />
-      {renderHeader()}
       {renderSearchBar()}
       
       {error ? (
@@ -314,20 +310,24 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight || 0 : 0,
-    paddingBottom: 8,
-    backgroundColor: '#FFF',
-    elevation: 2,
+    padding: 20,
+    paddingTop: 50,
   },
   backButton: {
     padding: 8,
   },
   title: {
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: 'bold',
-    color: '#000',
-    marginLeft: 16,
+    flex: 1,
+    textAlign: 'center',
+    marginRight: 40, // Compensate for back button
+  },
+  label: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 8,
+    color: '#333',
   },
   searchContainer: {
     flexDirection: 'row',

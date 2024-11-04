@@ -312,20 +312,24 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight || 0 : 0,
-    paddingBottom: 8,
-    backgroundColor: '#FFF',
-    elevation: 2,
+    padding: 20,
+      paddingTop: 50,
   },
   backButton: {
     padding: 8,
   },
   title: {
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: 'bold',
-    color: '#000',
-    marginLeft: 16,
+    flex: 1,
+    textAlign: 'center',
+    marginRight: 40, // Compensate for back button
+  },
+  label: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 8,
+    color: '#333',
   },
   searchContainer: {
     flexDirection: 'row',

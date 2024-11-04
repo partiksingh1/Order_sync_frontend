@@ -54,16 +54,13 @@ const CreateSalesman = () => {
   // Submit form
   const handleSubmit = async () => {
     if (!isFormValid()) {
-      console.log("form error h bhai");
-      
       return; // Stop if validation fails
     }
 
     setLoading(true);
     try {
       const token = await AsyncStorage.getItem('token')
-      console.log("token",token);
-      console.log("formdata",formData);
+
       
       
       const response = await axios.post(`${process.env.EXPO_PUBLIC_API_URL}/admin/create-salesperson`,{

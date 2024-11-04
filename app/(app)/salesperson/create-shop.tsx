@@ -11,6 +11,7 @@ import {
   ScrollView,
   ActivityIndicator,
 } from 'react-native';
+import { Picker } from '@react-native-picker/picker';
 import * as ImagePicker from 'expo-image-picker';
 import axios from 'axios';
 import { Ionicons } from '@expo/vector-icons';
@@ -18,24 +19,40 @@ import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Location from 'expo-location';
 
+const DELIVERY_SLOTS = [
+  '9:00 AM - 11:00 AM',
+  '11:00 AM - 1:00 PM',
+  '2:00 PM - 4:00 PM',
+  '4:00 PM - 6:00 PM',
+];
+
+interface FormData {
+  name: string;
+  ownerName: string;
+  contactNumber: string;
+  email: string;
+  gpsLocation: string;
+  preferredDeliverySlot: string;
+}
 
 const CreateShopkeeperForm = () => {
   const router = useRouter();
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormData>({
     name: '',
     ownerName: '',
     contactNumber: '',
     email: '',
     gpsLocation: '',
-    preferredDeliverySlot: '',
+    preferredDeliverySlot: DELIVERY_SLOTS[0],
   });
   const [image, setImage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [locationLoading, setLocationLoading] = useState(false);
 
-  const handleInputChange = (field: string, value: string) => {
-    setFormData({ ...formData, [field]: value });
+  const handleInputChange = (field: keyof FormData, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
   };
+
   const fetchLocation = async () => {
     setLocationLoading(true);
     try {
@@ -46,10 +63,10 @@ const CreateShopkeeperForm = () => {
       }
 
       const location = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
-      setFormData({
-        ...formData,
+      setFormData(prev => ({
+        ...prev,
         gpsLocation: `${location.coords.latitude}, ${location.coords.longitude}`,
-      });
+      }));
       Alert.alert('Success', 'Location captured successfully!');
     } catch (error) {
       Alert.alert('Error', 'Failed to fetch location. Please try again.');
@@ -58,36 +75,27 @@ const CreateShopkeeperForm = () => {
     }
   };
 
-  const handleImageSelection = async () => {
-    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permissionResult.granted) {
-      Alert.alert('Permission to access media library is required!');
+  const handleImagePicker = async (useCamera: boolean) => {
+    const permissionMethod = useCamera 
+      ? ImagePicker.requestCameraPermissionsAsync 
+      : ImagePicker.requestMediaLibraryPermissionsAsync;
+    
+    const { granted } = await permissionMethod();
+    if (!granted) {
+      Alert.alert('Permission Required', `Permission to access ${useCamera ? 'camera' : 'media library'} is required!`);
       return;
     }
-    const result = await ImagePicker.launchImageLibraryAsync({
+
+    const result = await (useCamera 
+      ? ImagePicker.launchCameraAsync
+      : ImagePicker.launchImageLibraryAsync)({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       quality: 1,
     });
-    if (!result.canceled) {
-      const imageUri = result.assets[0].uri;
-      setImage(imageUri);
-    }
-  };
 
-  const handleTakePicture = async () => {
-    const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
-    if (!permissionResult.granted) {
-      Alert.alert('Permission to access camera is required!');
-      return;
-    }
-    const result = await ImagePicker.launchCameraAsync({
-      allowsEditing: true,
-      quality: 1,
-    });
-    if (!result.canceled) {
-      const imageUri = result.assets[0].uri;
-      setImage(imageUri);
+    if (!result.canceled && result.assets[0].uri) {
+      setImage(result.assets[0].uri);
     }
   };
 
@@ -100,23 +108,20 @@ const CreateShopkeeperForm = () => {
 
     setLoading(true);
     try {
-      await fetchLocation();
       const token = await AsyncStorage.getItem('token');
       const userStr = await AsyncStorage.getItem('user');
-      if (!userStr) {
-        Alert.alert('Error', 'User not found');
-        setLoading(false);
-        return;
-      }
+      if (!userStr) throw new Error('User not found');
 
       const user = JSON.parse(userStr);
       const formDataToSend = new FormData();
-      (Object.keys(formData) as Array<keyof typeof formData>).forEach((key) => {
-        formDataToSend.append(key, formData[key]);
+
+      // Append form data
+      Object.entries(formData).forEach(([key, value]) => {
+        formDataToSend.append(key, value);
       });
       formDataToSend.append('salespersonId', user.id.toString());
 
-      // Handle image if exists
+      // Append image if exists
       if (image) {
         const imageFileName = image.split('/').pop() || 'image.jpg';
         const match = /\.(\w+)$/.exec(imageFileName);
@@ -152,11 +157,37 @@ const CreateShopkeeperForm = () => {
     }
   };
 
-  const handleClearImage = () => {
-    setImage(null);
-  };
+  const renderFormField = (key: keyof FormData, value: string) => {
+    if (key === 'preferredDeliverySlot') {
+      return (
+        <View style={styles.pickerContainer}>
+          <Picker
+            selectedValue={value}
+            onValueChange={(itemValue) => handleInputChange(key, itemValue)}
+            style={styles.picker}
+          >
+            {DELIVERY_SLOTS.map((slot) => (
+              <Picker.Item key={slot} label={slot} value={slot} />
+            ))}
+          </Picker>
+        </View>
+      );
+    }
 
-  
+    return (
+      <TextInput
+        style={styles.textArea}
+        placeholder={`Enter ${key.replace(/([A-Z])/g, ' $1').toLowerCase()}`}
+        value={value}
+        onChangeText={(text) => handleInputChange(key, text)}
+        keyboardType={
+          key === 'contactNumber' ? 'phone-pad' 
+          : key === 'email' ? 'email-address' 
+          : 'default'
+        }
+      />
+    );
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -168,23 +199,16 @@ const CreateShopkeeperForm = () => {
       </View>
 
       <ScrollView style={styles.formContainer}>
-        {Object.entries(formData).map(([key, value]) => (
+        {(Object.keys(formData) as Array<keyof FormData>).map((key) => (
           <View style={styles.inputCard} key={key}>
             <Text style={styles.label}>
               *{key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
             </Text>
-            <TextInput
-              style={styles.textArea}
-              placeholder={`Enter ${key}`}
-              value={value}
-              onChangeText={(text) => handleInputChange(key, text)}
-              keyboardType={key === 'contactNumber' ? 'phone-pad' : key === 'email' ? 'email-address' : 'default'}
-            />
-          </View>  
+            {renderFormField(key, formData[key])}
+          </View>
         ))}
-        
 
-        <TouchableOpacity onPress={handleImageSelection} style={styles.imagePicker}>
+        <TouchableOpacity onPress={() => handleImagePicker(false)} style={styles.imagePicker}>
           {image ? (
             <Image source={{ uri: image }} style={styles.imagePreview} />
           ) : (
@@ -192,20 +216,20 @@ const CreateShopkeeperForm = () => {
           )}
         </TouchableOpacity>
 
-        <TouchableOpacity onPress={handleTakePicture} style={styles.button}>
+        <TouchableOpacity onPress={() => handleImagePicker(true)} style={styles.button}>
           <Ionicons name="camera" size={24} color="white" />
           <Text style={styles.buttonText}>Take Picture</Text>
         </TouchableOpacity>
 
         {image && (
-          <TouchableOpacity onPress={handleClearImage} style={styles.clearButton}>
+          <TouchableOpacity onPress={() => setImage(null)} style={styles.clearButton}>
             <Ionicons name="close" size={24} color="white" />
             <Text style={styles.clearButtonText}>Clear Image</Text>
           </TouchableOpacity>
         )}
         <TouchableOpacity onPress={fetchLocation} style={styles.button}>
-        <Text style={styles.buttonText}>Get GPS Location</Text>
-      </TouchableOpacity>
+          <Text style={styles.buttonText}>Get GPS Location</Text>
+        </TouchableOpacity>
         <TouchableOpacity onPress={handleSubmit} style={styles.submitButton}>
           {loading ? (
             <ActivityIndicator size="small" color="#FFF" />
@@ -213,7 +237,7 @@ const CreateShopkeeperForm = () => {
             <Text style={styles.submitButtonText}>Create Shopkeeper</Text>
           )}
         </TouchableOpacity>
-      </ScrollView> 
+      </ScrollView>
     </SafeAreaView>
   );
 };
@@ -248,19 +272,29 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 16,
-      fontWeight: '600',
-      marginBottom: 8,
-      color: '#333',
+    fontWeight: '600',
+    marginBottom: 8,
+    color: '#333',
   },
   textArea: {
     backgroundColor: 'white',
-      borderRadius: 8,
-      borderWidth: 1,
-      borderColor: '#ddd',
-      padding: 12,
-      marginBottom: 1,
-      height: 60,
-      textAlignVertical: 'top',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    padding: 12,
+    marginBottom: 1,
+    height: 60,
+    textAlignVertical: 'top',
+  },
+  pickerContainer: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    marginBottom: 1,
+  },
+  picker: {
+    height: 60,
+    width: '100%',
   },
   imagePicker: {
     borderWidth: 1,

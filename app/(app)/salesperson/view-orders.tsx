@@ -289,15 +289,15 @@ const SalespersonOrdersScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar backgroundColor="#FFFFFF" barStyle="dark-content" />
-      <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => router.replace('/(app)/salesperson/dashboard')}
-          style={styles.backButton}        >
-          <Ionicons name="arrow-back" size={24} color="#000000" />
-        </TouchableOpacity>
-        <Text style={styles.title}>Orders</Text>
-      </View>
+        <View style={styles.header}>
+          <TouchableOpacity
+            onPress={() => router.replace('/(app)/salesperson/dashboard')}
+            style={styles.backButton}
+          >
+            <Ionicons name="arrow-back" size={24} color="black" />
+          </TouchableOpacity>
+          <Text style={styles.title}>Your Orders</Text>
+        </View>
 
       <FlatList
         data={orders}
@@ -317,30 +317,30 @@ const SalespersonOrdersScreen = () => {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
     backgroundColor: '#F5F5F5',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
-    backgroundColor: '#FFFFFF',
-    elevation: 2,
+    marginBottom: 24,
+    padding: 20,
+    paddingTop: 50,
+  },
+  backButton: {
+    padding: 8,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    flex: 1,
+    textAlign: 'center',
+    marginRight: 40, // Compensate for back button
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
-  },
-  backButton: {
-    padding: 8,
-    marginRight: 8,
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#000000',
   },
   list: {
     padding: 16,
