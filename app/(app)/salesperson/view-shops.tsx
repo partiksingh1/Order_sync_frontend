@@ -208,22 +208,26 @@ const ShopList = () => {
         </View>
       ) : (
         <FlatList
-          data={filteredShops}
-          renderItem={renderShopItem}
-          keyExtractor={(item) => item.id.toString()}
-          contentContainerStyle={styles.list}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-          }
-          ListEmptyComponent={
-            <View style={styles.emptyContainer}>
-              <Ionicons name="business" size={50} color="#999" />
-              <Text style={styles.emptyText}>
-                {searchQuery ? 'No shops found matching your search' : 'No shops available'}
-              </Text>
-            </View>
-          }
-        />
+  data={filteredShops}
+  renderItem={renderShopItem}
+  keyExtractor={(item) => item.id.toString()}
+  contentContainerStyle={styles.list}
+  refreshControl={
+    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+  }
+  ListEmptyComponent={
+    <View style={styles.emptyContainer}>
+      <Ionicons name="business" size={50} color="#999" />
+      <Text style={styles.emptyText}>
+        {shopsData.length === 0
+          ? 'No shops available. Please try refreshing.'
+          : searchQuery
+          ? 'No shops found matching your search.'
+          : 'No shops available.'}
+      </Text>
+    </View>
+  }
+/>
       )}
 
       <Modal

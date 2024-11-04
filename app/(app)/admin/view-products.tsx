@@ -166,7 +166,7 @@ const VariantForm = memo(({ variantData, setVariantData, onSubmit }: {
     {Object.entries({
       variantName: { label: 'Variant Name', type: 'text', icon: 'text-outline' },
       variantValue: { label: 'Variant Value', type: 'text', icon: 'information-circle-outline' },
-      price: { label: 'Price', type: 'numeric', icon: 'pricetag-outline' },
+      price: { label: 'Retailer Price', type: 'numeric', icon: 'pricetag-outline' },
       stockQuantity: { label: 'Stock Quantity', type: 'numeric', icon: 'archive-outline' },
     }).map(([key, { label, type, icon }]) => (
       <View key={key} style={styles.inputContainer}>

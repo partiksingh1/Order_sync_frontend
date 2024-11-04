@@ -423,7 +423,7 @@ const CreateProductForm = () => {
         transparent
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+          <ScrollView style={styles.modalContent}>
             <Text style={styles.modalTitle}>Add Variant</Text>
             {renderInput({
               placeholder: 'Variant Name',
@@ -436,7 +436,7 @@ const CreateProductForm = () => {
               onChangeText: (text: string) => setNewVariant(prev => ({ ...prev, variantValue: text }))
             })}
             {renderInput({
-              placeholder: 'Price',
+              placeholder: 'Retailer Price',
               value: newVariant.price.toString(),
               onChangeText: (text: string) => setNewVariant(prev => ({ ...prev, price: parseFloat(text) || 0 })),
               keyboardType: 'numeric'
@@ -468,7 +468,7 @@ const CreateProductForm = () => {
                 <Text style={styles.modalButtonTextPrimary}>Add</Text>
               </TouchableOpacity>
             </View>
-          </View>
+          </ScrollView>
         </View>
       </Modal>
     </SafeAreaView>

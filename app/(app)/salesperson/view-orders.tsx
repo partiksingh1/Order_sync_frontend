@@ -318,6 +318,7 @@ const SalespersonOrdersScreen = () => {
 const styles = StyleSheet.create({
   container: {
     backgroundColor: '#F5F5F5',
+    flex: 1,
   },
   header: {
     flexDirection: 'row',

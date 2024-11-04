@@ -20,10 +20,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Location from 'expo-location';
 
 const DELIVERY_SLOTS = [
-  '9:00 AM - 11:00 AM',
-  '11:00 AM - 1:00 PM',
-  '2:00 PM - 4:00 PM',
-  '4:00 PM - 6:00 PM',
+  '11:00 AM - 2:00 PM',
+  '4:00 PM - 9:00 PM',
 ];
 
 interface FormData {
@@ -150,8 +148,7 @@ const CreateShopkeeperForm = () => {
         router.replace('/salesperson/dashboard');
       }
     } catch (error: any) {
-      console.error('Error creating shopkeeper:', error.response?.data || error);
-      Alert.alert('Error', error.response?.data?.message || 'Failed to create shopkeeper');
+      Alert.alert('Phone number Already taken');
     } finally {
       setLoading(false);
     }
@@ -172,12 +169,20 @@ const CreateShopkeeperForm = () => {
           </Picker>
         </View>
       );
+    } else if (key === 'gpsLocation') {
+      return (
+        <TouchableOpacity onPress={fetchLocation} style={styles.textArea}>
+          <Text style={{ color: value ? 'black' : '#A9A9A9' }}>
+            {value || 'Tap to get GPS Location'}
+          </Text>
+        </TouchableOpacity>
+      );
     }
-
+  
     return (
       <TextInput
         style={styles.textArea}
-        placeholder={`Enter ${key.replace(/([A-Z])/g, ' $1').toLowerCase()}`}
+        placeholder={`Enter ${key === 'name' ? 'ShopName' : key.replace(/([A-Z])/g, ' $1').toLowerCase()}`} // Change placeholder for 'name'
         value={value}
         onChangeText={(text) => handleInputChange(key, text)}
         keyboardType={
@@ -188,6 +193,7 @@ const CreateShopkeeperForm = () => {
       />
     );
   };
+  
 
   return (
     <SafeAreaView style={styles.container}>
@@ -202,8 +208,8 @@ const CreateShopkeeperForm = () => {
         {(Object.keys(formData) as Array<keyof FormData>).map((key) => (
           <View style={styles.inputCard} key={key}>
             <Text style={styles.label}>
-              *{key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
-            </Text>
+        *{key === 'name' ? 'Shop Name' : key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
+      </Text>
             {renderFormField(key, formData[key])}
           </View>
         ))}
@@ -227,9 +233,6 @@ const CreateShopkeeperForm = () => {
             <Text style={styles.clearButtonText}>Clear Image</Text>
           </TouchableOpacity>
         )}
-        <TouchableOpacity onPress={fetchLocation} style={styles.button}>
-          <Text style={styles.buttonText}>Get GPS Location</Text>
-        </TouchableOpacity>
         <TouchableOpacity onPress={handleSubmit} style={styles.submitButton}>
           {loading ? (
             <ActivityIndicator size="small" color="#FFF" />
