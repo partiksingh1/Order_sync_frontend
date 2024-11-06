@@ -31,6 +31,9 @@ type Shop = {
   imageUrl: string;
   videoUrl: string;
   preferredDeliverySlot: string;
+  salesperson?: {
+    name: string;  // salesperson is an object with a name property
+  };
   createdAt: string;
   updatedAt: string;
 };
@@ -292,6 +295,12 @@ const ShopList = () => {
                     <Ionicons name="time" size={20} color="#666" />
                     <Text style={styles.modalDetailText}>
                       {selectedShop.preferredDeliverySlot}
+                    </Text>
+                  </View>
+                  <View style={styles.modalDetailRow}>
+                    <Ionicons name="star" size={20} color="#666" />
+                    <Text style={styles.modalDetailText}>
+                      Onboarded By : {selectedShop.salesperson?.name}
                     </Text>
                   </View>
                 </View>

@@ -157,9 +157,18 @@ const OrderList = () => {
         'Delivery Date': order.deliveryDate,
         'Delivery Slot': order.deliverySlot,
         'Status': order.status,
-        'Products': order.products.map(p => `${p.productName} (${p.variant}) x${p.quantity}`)
-        .join(', ')
+        'Products': order.products.map(p => {
+          // Build the product details
+          const productDetails = p.variant 
+            ? `${p.productName} (${p.variant})` 
+            : p.productName; // If no variant, just the product name
+      
+          // Return product details with quantity if quantity is greater than 0
+          return p.quantity > 0 ? `${productDetails} x${p.quantity}` : productDetails;
+        }).join('\n') // Using newline character for separation
       }));
+      
+      
 
       const worksheet = XLSX.utils.json_to_sheet(worksheetData);
       const workbook = XLSX.utils.book_new();

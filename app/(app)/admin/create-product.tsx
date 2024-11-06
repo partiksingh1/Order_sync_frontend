@@ -104,7 +104,6 @@ const CreateProductForm = () => {
       );
       setCategories(response.data);
     } catch (error) {
-      console.error('Error fetching categories:', error);
       Alert.alert('Error', 'Unable to fetch categories. Please try again.');
     }
   }, []);
@@ -148,35 +147,37 @@ const CreateProductForm = () => {
       Alert.alert('Validation Error', 'Please fill in all required fields.');
       return;
     }
-
+  
     setLoading(true);
     try {
       const token = await AsyncStorage.getItem('token');
       const formDataToSend = new FormData();
-
+  
       // Append form data
       Object.entries(formData).forEach(([key, value]) => {
-        if (key !== 'variants') {
+        if (key === 'variants') {
+          // Only append variants if there are any
+          if (formData.variants.length > 0) {
+            formDataToSend.append('variants', JSON.stringify(formData.variants));
+          }
+        } else {
           formDataToSend.append(key, value.toString());
         }
       });
-
+  
       // Handle image
       if (image) {
         const imageFileName = image.split('/').pop() || 'image.jpg';
         const match = /\.(\w+)$/.exec(imageFileName);
         const imageType = match ? `image/${match[1]}` : 'image/jpeg';
-
+  
         formDataToSend.append('image', {
           uri: image,
           name: imageFileName,
           type: imageType,
         } as any);
       }
-
-      // Add variants as JSON string
-      formDataToSend.append('variants', JSON.stringify(formData.variants));
-
+  
       const response = await axios.post(
         `${process.env.EXPO_PUBLIC_API_URL}/admin/create-product`,
         formDataToSend,
@@ -187,11 +188,10 @@ const CreateProductForm = () => {
           },
         }
       );
-
+  
       Alert.alert('Success', 'Product created successfully!');
       router.replace('/(app)/admin/dashboard');
     } catch (error) {
-      console.error('Error creating product:', error);
       Alert.alert('Error', 'Failed to create product. Please try again.');
     } finally {
       setLoading(false);
@@ -357,7 +357,7 @@ const CreateProductForm = () => {
               disabled={imageUploading}
             >
               {imageUploading ? (
-                <ActivityIndicator color="#9b86ec" />
+                <ActivityIndicator color="#007AFF" />
               ) : image ? (
                 <Image source={{ uri: image }} style={styles.imagePreview} />
               ) : (
@@ -533,7 +533,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFF',
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#9b86ec',
+    borderColor: '#E5E5EA',
     overflow: 'hidden',
   },
   picker: {
@@ -613,7 +613,7 @@ const styles = StyleSheet.create({
     borderStyle: 'dashed',
   },
   addButtonText: {
-    color: '#9b86ec',
+    color: '#007AFF',
     marginLeft: 8,
     fontSize: 16,
     fontWeight: '500',

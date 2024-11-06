@@ -50,7 +50,6 @@ interface OrderItem {
 interface Product {
   id: string;
   name: string; // Assuming the product has a name property
-  distributorPrice: number; // Added from schema
   retailerPrice: number; // Added from schema
   variants: { id: string; variantName: string; variantValue: string; price: number }[]; //product variants
 }
@@ -63,6 +62,114 @@ interface Shopkeeper {
     id: number;
     name: string;
   }
+  interface SearchableDropdownProps {
+    data: Array<{ id: number; name: string }>;
+    placeholder: string;
+    value: number;
+    onSelect: (value: number) => void;
+    error?: string;
+  }
+  
+  const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
+    data,
+    placeholder,
+    value,
+    onSelect,
+    error
+  }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [filteredData, setFilteredData] = useState(data);
+  
+    useEffect(() => {
+      const filtered = data.filter(item =>
+        item.name.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+      setFilteredData(filtered);
+    }, [searchQuery, data]);
+  
+    const selectedItem = data.find(item => item.id === value);
+  
+    return (
+      <View>
+        <TouchableOpacity
+          style={[
+            styles.dropdownButton,
+            error ? styles.errorBorder : null
+          ]}
+          onPress={() => setIsOpen(!isOpen)}
+        >
+          <Text style={[
+            styles.dropdownButtonText,
+            !selectedItem && styles.placeholderText
+          ]}>
+            {selectedItem ? selectedItem.name : placeholder}
+          </Text>
+          <Ionicons
+            name={isOpen ? "chevron-up" : "chevron-down"}
+            size={24}
+            color="#666"
+          />
+        </TouchableOpacity>
+  
+        <Modal
+          visible={isOpen}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setIsOpen(false)}
+        >
+          <TouchableOpacity
+            style={styles.modalOverlay}
+            activeOpacity={1}
+            onPress={() => setIsOpen(false)}
+          >
+            <View style={styles.dropdownModal}>
+              <View style={styles.searchContainer}>
+                <Ionicons name="search" size={20} color="#666" />
+                <TextInput
+                  style={styles.searchInput}
+                  placeholder="Search..."
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                  autoFocus
+                />
+              </View>
+              
+              <FlatList
+                data={filteredData}
+                keyExtractor={(item) => item.id.toString()}
+                renderItem={({ item }) => (
+                  <TouchableOpacity
+                    style={[
+                      styles.dropdownItem,
+                      item.id === value && styles.selectedItem
+                    ]}
+                    onPress={() => {
+                      onSelect(item.id);
+                      setIsOpen(false);
+                      setSearchQuery('');
+                    }}
+                  >
+                    <Text style={[
+                      styles.dropdownItemText,
+                      item.id === value && styles.selectedItemText
+                    ]}>
+                      {item.name}
+                    </Text>
+                    {item.id === value && (
+                      <Ionicons name="checkmark" size={20} color="#007bff" />
+                    )}
+                  </TouchableOpacity>
+                )}
+                style={styles.dropdownList}
+              />
+            </View>
+          </TouchableOpacity>
+        </Modal>
+      </View>
+    );
+  };
+  
 
 const CreateOrder = () => {
   const [formData, setFormData] = useState<OrderFormData>({
@@ -173,7 +280,7 @@ const CreateOrder = () => {
       (variant) => variant.id === selectedVariant
     );
 
-    const price = selectedVariantObj ? selectedVariantObj.price : selectedProduct.distributorPrice;
+    const price = selectedVariantObj ? selectedVariantObj.price : selectedProduct.retailerPrice;
 
     const newItem: OrderItem = {
       productId: selectedProduct.id,
@@ -272,19 +379,16 @@ const CreateOrder = () => {
 
         {/* Form Fields */}
         {/* Shopkeeper Selection */}
-        <Text style={styles.label}>Shopkeeper *</Text>
-        <View style={[styles.pickerContainer]}>
-          <Picker
-            selectedValue={formData.shopkeeperId}
-            onValueChange={(value) => handleInputChange('shopkeeperId', String(value))}
-          >
-            <Picker.Item label="Select a shopkeeper" value={0} />
-            {shopkeepers.map((shopkeeper) => (
-              <Picker.Item key={shopkeeper.id} label={shopkeeper.name} value={shopkeeper.id} />
-            ))}
-          </Picker>
-        </View>
-        {errors.shopkeeperId && <Text style={styles.errorText}>{errors.shopkeeperId}</Text>}
+        {/* Replace the existing Shopkeeper Selection */}
+<Text style={styles.label}>Shopkeeper *</Text>
+<SearchableDropdown
+  data={shopkeepers}
+  placeholder="Select a shopkeeper"
+  value={formData.shopkeeperId}
+  onSelect={(value) => handleInputChange('shopkeeperId', String(value))}
+  error={errors.shopkeeperId}
+/>
+{errors.shopkeeperId && <Text style={styles.errorText}>{errors.shopkeeperId}</Text>}
 
         {/* Distributor Selection */}
         <Text style={styles.label}>Distributor *</Text>
@@ -448,7 +552,7 @@ const CreateOrder = () => {
                   >
                     <Text style={styles.productName}>{item.name}</Text>
                     <Text style={styles.productPrice}>
-                      Rs.{item.distributorPrice.toFixed(2)}
+                      Rs.{item.retailerPrice.toFixed(2)}
                     </Text>
                   </TouchableOpacity>
                 )}
@@ -767,6 +871,64 @@ const styles = StyleSheet.create({
     addItemButtonText: {
       color: 'white',
       fontSize: 16,
+      fontWeight: '600',
+    },
+    dropdownButton: {
+      backgroundColor: 'white',
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: '#ddd',
+      padding: 12,
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 16,
+    },
+    dropdownButtonText: {
+      fontSize: 16,
+      color: '#333',
+    },
+    placeholderText: {
+      color: '#666',
+    },
+    dropdownModal: {
+      backgroundColor: 'white',
+      borderRadius: 12,
+      maxHeight: '80%',
+    },
+    searchContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      padding: 12,
+      borderBottomWidth: 1,
+      borderBottomColor: '#eee',
+    },
+    searchInput: {
+      flex: 1,
+      marginLeft: 8,
+      fontSize: 16,
+      padding: 8,
+    },
+    dropdownList: {
+      maxHeight: 300,
+    },
+    dropdownItem: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: 16,
+      borderBottomWidth: 1,
+      borderBottomColor: '#eee',
+    },
+    selectedItem: {
+      backgroundColor: '#f0f9ff',
+    },
+    dropdownItemText: {
+      fontSize: 16,
+      color: '#333',
+    },
+    selectedItemText: {
+      color: '#007bff',
       fontWeight: '600',
     },
   });
