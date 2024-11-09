@@ -1,16 +1,27 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard, Alert } from 'react-native';
+import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  KeyboardAvoidingView,
+  Platform,
+  TouchableWithoutFeedback,
+  Keyboard,
+  Alert
+} from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import axios from 'axios';
 import { useAuth } from '@/context/authContext';
-
+import { Ionicons } from '@expo/vector-icons';
 const LoginScreen = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [passwordVisible, setPasswordVisible] = useState(false); // State for password visibility
   const router = useRouter();
   const { login } = useAuth();
-
 
   // Form validation
   const validateForm = () => {
@@ -34,17 +45,16 @@ const LoginScreen = () => {
 
       if (response.status === 200) {
         const { token, user } = response.data;
-        
 
         // Use the login function from context
         await login(user, token);
-        
+
         // Navigate based on role
         navigateBasedOnRole(user);
       } else {
         Alert.alert('Login failed', 'Invalid credentials.');
       }
-    } catch (error: unknown) {
+    } catch (error) {
       if (axios.isAxiosError(error)) {
         // If it's an Axios error, you can access the response
         if (!error.response) {
@@ -63,10 +73,10 @@ const LoginScreen = () => {
   };
 
   // Function to navigate based on user role
-   const navigateBasedOnRole = (user: { role: string }) => {
-     switch (user.role) {
-       case 'ADMIN':
-         router.replace('/(app)/admin/dashboard');
+  const navigateBasedOnRole = (user: { role: any; }) => {
+    switch (user.role) {
+      case 'ADMIN':
+        router.replace('/(app)/admin/dashboard');
         break;
       case 'SALESPERSON':
         router.replace('/(app)/salesperson/dashboard');
@@ -76,8 +86,8 @@ const LoginScreen = () => {
         break;
       default:
         Alert.alert('Error', 'Unknown role');
-     }
-   };
+    }
+  };
 
   return (
     <KeyboardAvoidingView
@@ -85,7 +95,6 @@ const LoginScreen = () => {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 60 : 0}
     >
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <View style={styles.innerContainer}>
           <View style={styles.logoContainer}>
             <Text style={styles.logoText}>Needibay</Text>
@@ -100,13 +109,22 @@ const LoginScreen = () => {
               keyboardType="email-address"
               autoCapitalize="none"
             />
-            <TextInput
-              placeholder="Password"
-              value={password}
-              onChangeText={setPassword}
-              style={styles.inputField}
-              secureTextEntry
-            />
+            <View style={styles.passwordContainer}>
+              <TextInput
+                placeholder="Password"
+                value={password}
+                onChangeText={setPassword}
+                style={[styles.inputField, { flex: 1 }]}
+                secureTextEntry={!passwordVisible}
+              />
+              <TouchableOpacity onPress={() => setPasswordVisible(!passwordVisible)}>
+                <Ionicons
+                  name={passwordVisible ? 'eye' : 'eye-off'}
+                  size={24}
+                  color="gray"
+                />
+              </TouchableOpacity>
+            </View>
           </View>
           <TouchableOpacity
             style={styles.loginButton}
@@ -116,7 +134,6 @@ const LoginScreen = () => {
             <Text style={styles.loginButtonText}>{loading ? 'Loading...' : 'LOGIN'}</Text>
           </TouchableOpacity>
         </View>
-      </TouchableWithoutFeedback>
     </KeyboardAvoidingView>
   );
 };
@@ -157,7 +174,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 16,
-    marginBottom: 20,
+  },
+  passwordContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'white',
+    borderRadius: 8,
+    paddingRight: 12,
+    marginTop:20
   },
   loginButton: {
     backgroundColor: '#D6F171',

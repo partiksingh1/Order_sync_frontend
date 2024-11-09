@@ -33,6 +33,16 @@ type Item = {
   product: Product;
 };
 
+type PartialPayment = {
+  id: number;
+  initialAmount: number;
+  remainingAmount: number;
+  dueDate: string;
+  paymentStatus: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
 type Order = {
   id: number;
   orderDate: string;
@@ -52,6 +62,8 @@ type Order = {
     name: string;
     phoneNumber: string;
   };
+  partialPayment: PartialPayment | null; // Add this line
+  paymentStatus: string; // Add this line
 };
 
 const SalespersonOrdersScreen = () => {
@@ -103,6 +115,7 @@ const SalespersonOrdersScreen = () => {
         }
       );
       setOrders(response.data);
+      
     } catch (error) {
       ToastAndroid.show('Failed to fetch orders', ToastAndroid.SHORT);
     } finally {
@@ -122,6 +135,7 @@ const SalespersonOrdersScreen = () => {
 
   const openModal = (order: Order) => {
     setSelectedOrder(order);
+    
     setModalVisible(true);
   };
 
@@ -263,6 +277,32 @@ const SalespersonOrdersScreen = () => {
                       </View>
                     </View>
                   </View>
+                  <View style={styles.section}>
+                  <Text style={styles.sectionTitle}>Partial Payment Details</Text>
+                  {selectedOrder.partialPayment ? (
+                    <View style={styles.sectionContent}>
+                      <Text style={styles.infoText}>
+                        Advance: ₹{selectedOrder.partialPayment.initialAmount.toLocaleString()}
+                      </Text>
+                      <Text style={styles.infoText}>
+                        Balance Amount: ₹{selectedOrder.partialPayment.remainingAmount.toLocaleString()}
+                      </Text>
+                      <Text style={styles.infoText}>
+                        Due Date: {formatDate(selectedOrder.partialPayment.dueDate)}
+                      </Text>
+                      <Text style={styles.infoText}>
+                        Payment Status: {selectedOrder.partialPayment.paymentStatus}
+                      </Text>
+                    </View>
+                  ) : (
+                    <Text style={styles.infoText}>No partial payment details available.</Text>
+                  )}
+                </View>
+
+                <View style={styles.section}>
+                  <Text style={styles.sectionTitle}>Payment Type</Text>
+                  <Text style={styles.infoText}>{selectedOrder.paymentTerm}</Text>
+                </View>
 
                   <View style={styles.totalSection}>
                     <Text style={styles.totalLabel}>Total Amount</Text>

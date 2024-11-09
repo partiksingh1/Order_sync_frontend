@@ -19,18 +19,12 @@ import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Location from 'expo-location';
 
-const DELIVERY_SLOTS = [
-  '11:00 AM - 2:00 PM',
-  '4:00 PM - 9:00 PM',
-];
-
 interface FormData {
   name: string;
   ownerName: string;
   contactNumber: string;
   email: string;
   gpsLocation: string;
-  preferredDeliverySlot: string;
 }
 
 const CreateShopkeeperForm = () => {
@@ -41,7 +35,6 @@ const CreateShopkeeperForm = () => {
     contactNumber: '',
     email: '',
     gpsLocation: '',
-    preferredDeliverySlot: DELIVERY_SLOTS[0],
   });
   const [image, setImage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -98,11 +91,16 @@ const CreateShopkeeperForm = () => {
   };
 
   const handleSubmit = async () => {
-    const { name, ownerName, contactNumber, email } = formData;
-    if (!name || !ownerName || !contactNumber || !email) {
+    const { name, ownerName, contactNumber } = formData;
+    if (!name || !ownerName || !contactNumber) {
       Alert.alert('Error', 'Please fill out all required fields.');
       return;
     }
+    // Check for image
+  if (!image) {
+    Alert.alert('Error', 'Please select an image of the shopkeeper.');
+    return;
+  }
 
     setLoading(true);
     try {
@@ -148,6 +146,7 @@ const CreateShopkeeperForm = () => {
         router.replace('/salesperson/dashboard');
       }
     } catch (error: any) {
+      
       Alert.alert('Phone number Already taken');
     } finally {
       setLoading(false);
@@ -155,21 +154,7 @@ const CreateShopkeeperForm = () => {
   };
 
   const renderFormField = (key: keyof FormData, value: string) => {
-    if (key === 'preferredDeliverySlot') {
-      return (
-        <View style={styles.pickerContainer}>
-          <Picker
-            selectedValue={value}
-            onValueChange={(itemValue) => handleInputChange(key, itemValue)}
-            style={styles.picker}
-          >
-            {DELIVERY_SLOTS.map((slot) => (
-              <Picker.Item key={slot} label={slot} value={slot} />
-            ))}
-          </Picker>
-        </View>
-      );
-    } else if (key === 'gpsLocation') {
+    if (key === 'gpsLocation') {
       return (
         <TouchableOpacity onPress={fetchLocation} style={styles.textArea}>
           <Text style={{ color: value ? 'black' : '#A9A9A9' }}>
@@ -208,23 +193,20 @@ const CreateShopkeeperForm = () => {
         {(Object.keys(formData) as Array<keyof FormData>).map((key) => (
           <View style={styles.inputCard} key={key}>
             <Text style={styles.label}>
-        *{key === 'name' ? 'Shop Name' : key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
+            *{key === 'name' 
+              ? 'Shop Name' 
+              : key === 'gpsLocation' 
+              ? 'GPS Location of Shop' 
+              : key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())
+            }
       </Text>
             {renderFormField(key, formData[key])}
           </View>
         ))}
 
-        <TouchableOpacity onPress={() => handleImagePicker(false)} style={styles.imagePicker}>
-          {image ? (
-            <Image source={{ uri: image }} style={styles.imagePreview} />
-          ) : (
-            <Text style={styles.imagePlaceholder}>Select Shopkeeper Image</Text>
-          )}
-        </TouchableOpacity>
-
         <TouchableOpacity onPress={() => handleImagePicker(true)} style={styles.button}>
           <Ionicons name="camera" size={24} color="white" />
-          <Text style={styles.buttonText}>Take Picture</Text>
+          <Text style={styles.buttonText}>SHOP IMAGE</Text>
         </TouchableOpacity>
 
         {image && (
@@ -237,7 +219,7 @@ const CreateShopkeeperForm = () => {
           {loading ? (
             <ActivityIndicator size="small" color="#FFF" />
           ) : (
-            <Text style={styles.submitButtonText}>Create Shopkeeper</Text>
+            <Text style={styles.submitButtonText}>Create Shop</Text>
           )}
         </TouchableOpacity>
       </ScrollView>
@@ -329,7 +311,8 @@ const styles = StyleSheet.create({
   buttonText: {
     color: '#FFF',
     fontSize: 16,
-    marginLeft: 10,
+    margin:'auto'
+
   },
   clearButton: {
     backgroundColor: '#FF0000',

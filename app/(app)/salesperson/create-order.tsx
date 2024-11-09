@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -9,278 +9,310 @@ import {
   Alert,
   FlatList,
   Modal,
-  Button,
   ScrollView,
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { router, Stack } from 'expo-router';
+import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
-
-// Define types for the item, product, and form data
+// Types and Interfaces
 interface OrderItem {
-    productId: string;
-    quantity: number;
-    variantId?: string;
-    productName: string; // Added for display purposes
-    price: number; // Added for display purposes
-    variantName?: string; // Added for display purposes
-  }
+  productId: string;
+  quantity: number;
+  variantId?: string;
+  productName: string;
+  price: number;
+  variantName?: string;
+}
 
-  interface OrderFormData {
-    shopkeeperId: number;
-    distributorId: number;
-    salespersonId: number;
-    deliveryDate: string;
-    deliverySlot: string;
-    paymentTerm: 'COD' | 'CREDIT';
-    orderNote?: string;
-    totalAmount: number;
-    items: OrderItem[];
-  }
-  const TIME_SLOTS = [
-    '11:00 AM - 2:00 PM',
-    '4:00 PM -9:00 PM',
-  ];
+interface PartialPayment {
+  initialAmount: number;
+  remainingAmount: number;
+  dueDate: string;
+}
+
+interface OrderFormData {
+  shopkeeperId: number;
+  distributorId: number;
+  salespersonId: number;
+  deliveryDate: string;
+  deliverySlot: string;
+  paymentTerm: '' | 'COD' | 'CREDIT' | 'PARTIAL';
+  orderNote?: string;
+  totalAmount: number;
+  items: OrderItem[];
+  partialPayment?: PartialPayment;
+}
 
 interface Product {
   id: string;
-  name: string; // Assuming the product has a name property
-  retailerPrice: number; // Added from schema
-  variants: { id: string; variantName: string; variantValue: string; price: number }[]; //product variants
+  name: string;
+  retailerPrice: number;
+  variants: {
+    id: string;
+    variantName: string;
+    variantValue: string;
+    price: number;
+  }[];
 }
-interface Shopkeeper {
-    id: number;
-    name: string;
+
+interface Entity {
+  id: number;
+  name: string;
+}
+
+// Constants
+const TIME_SLOTS = ['11:00 AM - 2:00 PM', '4:00 PM -9:00 PM'];
+const INITIAL_FORM_STATE: OrderFormData = {
+  shopkeeperId: 0,
+  distributorId: 0,
+  salespersonId: 0,
+  deliveryDate: '',
+  deliverySlot: '',
+  paymentTerm: '',
+  orderNote: '',
+  totalAmount: 0,
+  items: [],
+  partialPayment: {
+    initialAmount: 0,
+    remainingAmount: 0,
+    dueDate: '',
+  }, // Initialize partialPayment with default values
+};
+
+// Custom Error class for API errors
+class APIError extends Error {
+  constructor(public statusCode: number, message: string) {
+    super(message);
+    this.name = 'APIError';
   }
-  
-  interface Distributor {
-    id: number;
-    name: string;
-  }
-  interface SearchableDropdownProps {
-    data: Array<{ id: number; name: string }>;
-    placeholder: string;
-    value: number;
-    onSelect: (value: number) => void;
-    error?: string;
-  }
-  
-  const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
-    data,
-    placeholder,
-    value,
-    onSelect,
-    error
-  }) => {
-    const [isOpen, setIsOpen] = useState(false);
-    const [searchQuery, setSearchQuery] = useState('');
-    const [filteredData, setFilteredData] = useState(data);
-  
-    useEffect(() => {
-      const filtered = data.filter(item =>
-        item.name.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-      setFilteredData(filtered);
-    }, [searchQuery, data]);
-  
-    const selectedItem = data.find(item => item.id === value);
-  
-    return (
-      <View>
+}
+
+// Searchable Dropdown Component
+const SearchableDropdown: React.FC<{
+  data: Entity[];
+  placeholder: string;
+  value: number;
+  onSelect: (value: number) => void;
+  error?: string;
+}> = ({ data, placeholder, value, onSelect, error }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const filteredData = useMemo(() => 
+    data.filter(item =>
+      item.name.toLowerCase().includes(searchQuery.toLowerCase())
+    ),
+    [data, searchQuery]
+  );
+
+  const selectedItem = useMemo(() => 
+    data.find(item => item.id === value),
+    [data, value]
+  );
+
+  return (
+    <View>
+      <TouchableOpacity
+        style={[styles.dropdownButton]}
+        onPress={() => setIsOpen(!isOpen)}
+      >
+        <Text style={[styles.dropdownButtonText, !selectedItem && styles.placeholderText]}>
+          {selectedItem ? selectedItem.name : placeholder}
+        </Text>
+        <Ionicons name={isOpen ? "chevron-up" : "chevron-down"} size={24} color="#666" />
+      </TouchableOpacity>
+
+      <Modal
+        visible={isOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setIsOpen(false)}
+      >
         <TouchableOpacity
-          style={[
-            styles.dropdownButton,
-            error ? styles.errorBorder : null
-          ]}
-          onPress={() => setIsOpen(!isOpen)}
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setIsOpen(false)}
         >
-          <Text style={[
-            styles.dropdownButtonText,
-            !selectedItem && styles.placeholderText
-          ]}>
-            {selectedItem ? selectedItem.name : placeholder}
-          </Text>
-          <Ionicons
-            name={isOpen ? "chevron-up" : "chevron-down"}
-            size={24}
-            color="#666"
-          />
-        </TouchableOpacity>
-  
-        <Modal
-          visible={isOpen}
-          transparent
-          animationType="fade"
-          onRequestClose={() => setIsOpen(false)}
-        >
-          <TouchableOpacity
-            style={styles.modalOverlay}
-            activeOpacity={1}
-            onPress={() => setIsOpen(false)}
-          >
-            <View style={styles.dropdownModal}>
-              <View style={styles.searchContainer}>
-                <Ionicons name="search" size={20} color="#666" />
-                <TextInput
-                  style={styles.searchInput}
-                  placeholder="Search..."
-                  value={searchQuery}
-                  onChangeText={setSearchQuery}
-                  autoFocus
-                />
-              </View>
-              
-              <FlatList
-                data={filteredData}
-                keyExtractor={(item) => item.id.toString()}
-                renderItem={({ item }) => (
-                  <TouchableOpacity
-                    style={[
-                      styles.dropdownItem,
-                      item.id === value && styles.selectedItem
-                    ]}
-                    onPress={() => {
-                      onSelect(item.id);
-                      setIsOpen(false);
-                      setSearchQuery('');
-                    }}
-                  >
-                    <Text style={[
-                      styles.dropdownItemText,
-                      item.id === value && styles.selectedItemText
-                    ]}>
-                      {item.name}
-                    </Text>
-                    {item.id === value && (
-                      <Ionicons name="checkmark" size={20} color="#007bff" />
-                    )}
-                  </TouchableOpacity>
-                )}
-                style={styles.dropdownList}
+          <View style={styles.dropdownModal}>
+            <View style={styles.searchContainer}>
+              <Ionicons name="search" size={20} color="#666" />
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Search..."
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                autoFocus
               />
             </View>
-          </TouchableOpacity>
-        </Modal>
-      </View>
-    );
-  };
-  
+            
+            <FlatList
+              data={filteredData}
+              keyExtractor={(item) => item.id.toString()}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={[styles.dropdownItem, item.id === value && styles.selectedItem]}
+                  onPress={() => {
+                    onSelect(item.id);
+                    setIsOpen(false);
+                    setSearchQuery('');
+                  }}
+                >
+                  <Text style={[styles.dropdownItemText, item.id === value && styles.selectedItemText]}>
+                    {item.name}
+                  </Text>
+                  {item.id === value && <Ionicons name="checkmark" size={20} color="#007bff" />}
+                </TouchableOpacity>
+              )}
+              style={styles.dropdownList}
+            />
+          </View>
+        </TouchableOpacity>
+      </Modal>
+    </View>
+  );
+};
 
+// Main Component
 const CreateOrder = () => {
-  const [formData, setFormData] = useState<OrderFormData>({
-    shopkeeperId: 0, // Initialize as number
-    distributorId: 0, // Initialize as number
-    salespersonId: 0, // Initialize as number
-    deliveryDate: '',
-    deliverySlot: '',
-    paymentTerm: 'COD', // Default value
-    orderNote: '',
-    totalAmount: 0, // Initialize total amount
-    items: [],
-  });
-
+  const [showAcknowledgmentModal, setShowAcknowledgmentModal] = useState(false);
+  const [formData, setFormData] = useState<OrderFormData>(INITIAL_FORM_STATE);
   const [loading, setLoading] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [quantity, setQuantity] = useState<number>(1); // Local state for item quantity
-  const [shopkeepers, setShopkeepers] = useState<Shopkeeper[]>([]);
-  const [distributors, setDistributors] = useState<Distributor[]>([]);
+  const [quantity, setQuantity] = useState<number>(1);
+  const [shopkeepers, setShopkeepers] = useState<Entity[]>([]);
+  const [distributors, setDistributors] = useState<Entity[]>([]);
   const [selectedVariant, setSelectedVariant] = useState<string | null>(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showDueDatePicker, setShowDueDatePicker] = useState(false);
   const [errors, setErrors] = useState<Partial<Record<keyof OrderFormData, string>>>({});
   const [itemModalStep, setItemModalStep] = useState<'product' | 'variant' | 'quantity'>('product');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const validateForm = () => {
+
+  // API Functions
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const token = await AsyncStorage.getItem('token');
+      const user = await AsyncStorage.getItem('user');
+      
+      if (!token || !user) {
+        throw new APIError(401, 'Authentication required');
+      }
+
+      const parsedUser = JSON.parse(user);
+      const baseURL = process.env.EXPO_PUBLIC_API_URL;
+      const headers = { Authorization: `Bearer ${token}` };
+
+      const [productsRes, shopkeepersRes, distributorsRes] = await Promise.all([
+        axios.get(`${baseURL}/salesperson/get-products`, { headers }),
+        axios.get(`${baseURL}/salesperson/${parsedUser.id}/shops`, { headers }),
+        axios.get(`${baseURL}/salesperson/get-distributors`, { headers })
+      ]);
+
+      setProducts(productsRes.data);
+      setShopkeepers(shopkeepersRes.data);
+      setDistributors(distributorsRes.data);
+      setFormData(prev => ({ ...prev, salespersonId: parsedUser.id }));
+    } catch (error) {
+      handleError(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  // Error Handling
+  const handleError = (error: any) => {
+    let message = 'An unexpected error occurred';
+    
+    if (error instanceof APIError) {
+      message = error.message;
+    } else if (axios.isAxiosError(error)) {
+      message = error.response?.data?.message?.[0] || 
+                error.response?.data?.message || 
+                error.message;
+    }
+
+    Alert.alert('Error', message);
+  };
+
+  // Form Validation
+  const validateForm = useCallback((): boolean => {
     const newErrors: Partial<Record<keyof OrderFormData, string>> = {};
   
-    if (formData.shopkeeperId === 0) {
-      newErrors.shopkeeperId = 'Please select a shopkeeper';
-    }
-    if (formData.distributorId === 0) {
-      newErrors.distributorId = 'Please select a distributor';
-    }
-    if (!formData.deliveryDate) {
-      newErrors.deliveryDate = 'Please select a delivery date';
-    }
-    if (!formData.deliverySlot) {
-      newErrors.deliverySlot = 'Please select a delivery slot';
-    }
-    if (formData.items.length === 0) {
-      newErrors.items = 'Please add at least one item to the order';
+    // Required field validation
+    if (!formData.shopkeeperId) newErrors.shopkeeperId = 'Shopkeeper is required';
+    if (!formData.distributorId) newErrors.distributorId = 'Distributor is required';
+    if (!formData.deliveryDate) newErrors.deliveryDate = 'Delivery date is required';
+    if (!formData.deliverySlot) newErrors.deliverySlot = 'Delivery slot is required';
+    if (formData.items.length === 0) newErrors.items = 'At least one item is required';
+  
+    // Partial payment validation
+    if (formData.paymentTerm === 'PARTIAL') {
+      if (!formData.partialPayment) {
+        newErrors.partialPayment = 'Partial payment details are required';
+      } else {
+        const { initialAmount, remainingAmount, dueDate } = formData.partialPayment;
+        if (initialAmount + remainingAmount !== formData.totalAmount) {
+          Alert.alert("Initial and remaining amounts must equal total amount")
+          newErrors.partialPayment = 'Initial and remaining amounts must equal total amount';
+        }
+        if (!dueDate) newErrors.partialPayment = 'Due date is required';
+      }
     }
   
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0; // Return true if there are no errors
-  };
+    return Object.keys(newErrors).length === 0;
+  }, [formData]);
 
-
-  // Fetch products when the component mounts
-  useEffect(() => {
-    const initializeData = async () => {
-      try {
-        const token = await AsyncStorage.getItem('token');
-        const user = await AsyncStorage.getItem('user');
-        const parsedUser = JSON.parse(user || '{}');
-        setFormData((prev) => ({ ...prev, salespersonId: parsedUser.id }));
-
-        const productsResponse = await axios.get(
-          `${process.env.EXPO_PUBLIC_API_URL}/salesperson/get-products`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-
-        const shopkeepersResponse = await axios.get(
-          `${process.env.EXPO_PUBLIC_API_URL}/salesperson/${parsedUser.id}/shops`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-
-        const distributorsResponse = await axios.get(
-          `${process.env.EXPO_PUBLIC_API_URL}/salesperson/get-distributors`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-
-        setProducts(productsResponse.data);
-        setShopkeepers(shopkeepersResponse.data);
-        setDistributors(distributorsResponse.data);
-      } catch (error) {
-        Alert.alert('Error', 'Could not fetch data. Please try again later.');
-      }
-    };
-
-    initializeData();
+  // Form Handlers
+  const handleInputChange = useCallback((field: keyof OrderFormData, value: any) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: field === 'shopkeeperId' || field === 'distributorId' 
+        ? Number(value) 
+        : value
+    }));
   }, []);
 
-  // Handle input change
-  const handleInputChange = (field: string, value: string) => {
-    setFormData((prev) => ({
+  const handlePartialPaymentChange = useCallback((field: keyof PartialPayment, value: any) => {
+    setFormData(prev => ({
       ...prev,
-      [field]: field === 'shopkeeperId' || field === 'distributorId' ? Number(value) : value,
+      partialPayment: {
+        ...prev.partialPayment!,
+        [field]: field === 'dueDate' ? value : Number(value) // Ensure this does not throw an error
+      }
     }));
-  };
+  }, []);
 
-  // Date handling
-  const handleDateChange = (event: any, selectedDate?: Date) => {
+  const handleDateChange = useCallback((event: any, selectedDate?: Date) => {
     setShowDatePicker(false);
     if (selectedDate) {
-      const formattedDate = selectedDate.toISOString().split('T')[0];
-      handleInputChange('deliveryDate', formattedDate);
+      handleInputChange('deliveryDate', selectedDate.toISOString().split('T')[0]);
     }
-  };
+  }, [handleInputChange]);
 
-  // Enhanced item addition flow
-  const handleItemAddition = () => {
+  // Item Management
+  const handleItemAddition = useCallback(() => {
     if (!selectedProduct) return;
-    
+
     const selectedVariantObj = selectedProduct.variants.find(
-      (variant) => variant.id === selectedVariant
+      variant => variant.id === selectedVariant
     );
 
-    const price = selectedVariantObj ? selectedVariantObj.price : selectedProduct.retailerPrice;
+    const price = selectedVariantObj?.price ?? selectedProduct.retailerPrice;
 
     const newItem: OrderItem = {
       productId: selectedProduct.id,
@@ -288,13 +320,13 @@ const CreateOrder = () => {
       variantId: selectedVariant || undefined,
       productName: selectedProduct.name,
       price,
-      variantName: selectedVariantObj?.variantName,
+      variantName: selectedVariantObj?.variantName
     };
 
-    setFormData((prev) => ({
+    setFormData(prev => ({
       ...prev,
       items: [...prev.items, newItem],
-      totalAmount: prev.totalAmount + (price * quantity),
+      totalAmount: prev.totalAmount + (price * quantity)
     }));
 
     // Reset modal state
@@ -303,62 +335,219 @@ const CreateOrder = () => {
     setQuantity(1);
     setSelectedProduct(null);
     setSelectedVariant(null);
-  };
+  }, [selectedProduct, selectedVariant, quantity]);
 
-  // Handle item removal
-  const removeItem = (index: number) => {
-    const itemToRemove = formData.items[index];
-    const itemTotal = itemToRemove.quantity * itemToRemove.price; // Use price stored in item
+  const removeItem = useCallback((index: number) => {
+    setFormData(prev => {
+      const itemToRemove = prev.items[index];
+      const itemTotal = itemToRemove.quantity * itemToRemove.price;
+      return {
+        ...prev,
+        items: prev.items.filter((_, i) => i !== index),
+        totalAmount: prev.totalAmount - itemTotal
+      };
+    });
+  }, []);
 
-    setFormData(prev => ({
-      ...prev,
-      items: prev.items.filter((_, i) => i !== index),
-      totalAmount: prev.totalAmount - itemTotal,
-    }));
-  };
-
-  // Submit form
+  // Form Submission
   const handleSubmit = async () => {
-    if (!validateForm()) {
-      Alert.alert('Validation Error', 'Please fill in all required fields correctly.');
-      return;
-    }
-
-    setIsSubmitting(true);
     try {
-      const token = await AsyncStorage.getItem('token');
-      const response = await axios.post(
-        `${process.env.EXPO_PUBLIC_API_URL}/salesperson/create-order`,
-        formData,
-        {
-          headers: { Authorization: `Bearer ${token}` },
+      // Validate the form and log the validation result
+      const isValid = validateForm();
+      console.log('Form Validation Result:', isValid);
+  
+      if (!isValid) {
+        // If validation fails, show an alert and return early
+        Alert.alert('Validation Error', 'Please fill in all required fields correctly.');
+        return;
+      }
+  
+      // Check for partial payment validation specifically
+      if (formData.paymentTerm === 'PARTIAL') {
+        const partialPayment = formData.partialPayment;
+  
+        // Ensure partialPayment is defined before accessing its properties
+        if (partialPayment) {
+          const { initialAmount, remainingAmount } = partialPayment;
+          if (initialAmount + remainingAmount !== formData.totalAmount) {
+            Alert.alert('Validation Error', 'Initial and remaining amounts must equal total amount.');
+            return; // Prevent order creation
+          }
+        } else {
+          Alert.alert('Validation Error', 'Partial payment details are required.');
+          return; // Prevent order creation
         }
-      );
-
-      Alert.alert('Success', 'Order created successfully!');
-      router.replace('/salesperson/dashboard')
-    } catch (error: any) {
-      Alert.alert(
-        'Error',
-        error.response?.data?.message || 'Something went wrong. Please try again.'
-      );
+      }
+  
+      // Display the acknowledgment modal
+      setShowAcknowledgmentModal(true);
+    } catch (error) {
+      handleError(error);
     } finally {
       setIsSubmitting(false);
     }
   };
-  const resetForm = () => {
-    setFormData({
-      shopkeeperId: 0,
-      distributorId: 0,
-      salespersonId: formData.salespersonId, // Preserve salesperson ID
-      deliveryDate: '',
-      deliverySlot: '',
-      paymentTerm: 'COD',
-      orderNote: '',
-      totalAmount: 0,
-      items: [],
-    });
-    setErrors({});
+
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#007bff" />
+        <Text style={styles.loadingText}>Loading...</Text>
+      </View>
+    );
+  }
+  const AcknowledgmentModal = () => {
+    const [isSubmitting, setIsSubmitting] = useState(false);
+  
+    const handleConfirm = async () => {
+      try {
+        setIsSubmitting(true);
+        const token = await AsyncStorage.getItem('token');
+  
+        if (!token) {
+          throw new APIError(401, 'Authentication required');
+        }
+  
+        // Prepare submission data
+        const submitData = {
+          ...formData,
+          items: formData.items.map(item => ({
+            productId: item.productId,
+            quantity: item.quantity,
+            ...(item.variantId && { variantId: item.variantId })
+          }))
+        };
+  
+        // Make the API request
+        await axios.post(
+          `${process.env.EXPO_PUBLIC_API_URL}/salesperson/create-order`,
+          submitData,
+          {
+            headers: { Authorization: `Bearer ${token}` }
+          }
+        );
+  
+        Alert.alert('Success', 'Order created successfully!');
+        router.replace('/salesperson/dashboard');
+      } catch (error) {
+        handleError(error);
+      } finally {
+        setIsSubmitting(false);
+        setShowAcknowledgmentModal(false);
+      }
+    };
+  
+    return (
+      <Modal visible={showAcknowledgmentModal} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Confirm Order Details</Text>
+              <TouchableOpacity
+                style={styles.modalCloseButton}
+                onPress={() => setShowAcknowledgmentModal(false)}
+              >
+                <Ionicons name="close" size={24} color="black" />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={styles.modalBody} contentContainerStyle={styles.modalBodyContent}>
+              {/* Display the order details here */}
+              <Text>Shopkeeper: {shopkeepers.find(shop => shop.id === formData.shopkeeperId)?.name}</Text>
+              <Text>Distributor: {distributors.find(d => d.id === formData.distributorId)?.name}</Text>
+              <Text>Delivery Date: {formData.deliveryDate}</Text>
+              <Text>Delivery Slot: {formData.deliverySlot}</Text>
+              <Text>Payment Term: {formData.paymentTerm}</Text>
+              <Text>Total Amount: Rs.{formData.totalAmount.toFixed(2)}</Text>
+              <View style={styles.itemsSection}>
+                <Text style={styles.sectionTitle}>Order Items</Text>
+                {formData.items.map((item, index) => (
+                  <View key={index} style={styles.itemCard}>
+                    <View style={styles.itemDetails}>
+                      <Text style={styles.itemName}>{item.productName}</Text>
+                      {item.variantName && (
+                        <Text style={styles.variantName}>Variant: {item.variantName}</Text>
+                      )}
+                      <Text style={styles.itemPrice}>
+                        Rs.{item.price} × {item.quantity} = Rs.{(item.price * item.quantity).toFixed(2)}
+                      </Text>
+                    </View>
+                  </View>
+                ))}
+              </View>
+            </ScrollView>
+            <View style={styles.modalFooter}>
+              <TouchableOpacity
+                style={[styles.confirmSubmitButton, isSubmitting && styles.submitButtonDisabled]}
+                onPress={handleConfirm}
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? (
+                  <ActivityIndicator color="white" />
+                ) : (
+                  <>
+                    <Text style={styles.submitButtonText}>Confirm Order</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.confirmCancelButton}
+                onPress={() => setShowAcknowledgmentModal(false)}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+    );
+  };
+  // Add Partial Payment UI
+  const renderPartialPaymentFields = () => {
+    if (formData.paymentTerm !== 'PARTIAL') return null;
+  
+    return (
+      <View style={styles.partialPaymentSection}>
+        <Text style={styles.sectionTitle}>Partial Payment Details</Text>
+        
+        <Text style={styles.label}>Advance *</Text>
+        <TextInput
+          style={styles.input}
+          keyboardType="numeric"
+          value={formData.partialPayment?.initialAmount?.toString() || ''} // Use optional chaining
+          onChangeText={(value) => handlePartialPaymentChange('initialAmount', value)}
+        />
+  
+        <Text style={styles.label}>Balance *</Text>
+        <TextInput
+          style={styles.input}
+          keyboardType="numeric"
+          value={formData.partialPayment?.remainingAmount?.toString() || ''} // Use optional chaining
+          onChangeText={(value) => handlePartialPaymentChange('remainingAmount', value)}
+        />
+  
+        <Text style={styles.label}>Due Date *</Text>
+        <TouchableOpacity
+          style={styles.dateInput}
+          onPress={() => setShowDueDatePicker(true)}
+        >
+          <Text>{formData.partialPayment?.dueDate || 'Select due date'}</Text>
+        </TouchableOpacity>
+  
+        {showDueDatePicker && (
+          <DateTimePicker
+            value={formData.partialPayment?.dueDate ? new Date(formData.partialPayment.dueDate) : new Date()}
+            mode="date"
+            minimumDate={new Date()}
+            onChange={(event, selectedDate) => {
+              setShowDueDatePicker(false);
+              if (selectedDate) {
+                handlePartialPaymentChange('dueDate', selectedDate.toISOString().split('T')[0]);
+              }
+            }}
+          />
+        )}
+      </View>
+    );
   };
 
   return (
@@ -432,17 +621,6 @@ const CreateOrder = () => {
             ))}
           </Picker>
         </View>
-        {/* Payment Terms */}
-        <Text style={styles.label}>Payment Terms *</Text>
-        <View style={styles.pickerContainer}>
-          <Picker
-            selectedValue={formData.paymentTerm}
-            onValueChange={(value) => handleInputChange('paymentTerm', value)}
-          >
-            <Picker.Item label="Cash on Delivery" value="COD" />
-            <Picker.Item label="Credit" value="CREDIT" />
-          </Picker>
-        </View>
         {/* Order Note */}
         <Text style={styles.label}>Order Note (Optional)</Text>
         <TextInput
@@ -494,6 +672,23 @@ const CreateOrder = () => {
           <Text style={styles.totalLabel}>Total Amount:</Text>
           <Text style={styles.totalAmount}>Rs.{formData.totalAmount.toFixed(2)}</Text>
         </View>
+
+        {/* Updated Payment Terms picker to include PARTIAL */}
+        <Text style={styles.label}>Payment Terms *</Text>
+        <View style={styles.pickerContainer}>
+          <Picker
+            selectedValue={formData.paymentTerm}
+            onValueChange={(value) => handleInputChange('paymentTerm', value)}
+          >
+            <Picker.Item label="Select payment term" value="" /> 
+            <Picker.Item label="Cash on Delivery" value="COD" />
+            <Picker.Item label="Credit" value="CREDIT" />
+            <Picker.Item label="Partial Payment" value="PARTIAL" />
+          </Picker>
+        </View>
+
+        {/* Render partial payment fields when PARTIAL is selected */}
+        {renderPartialPaymentFields()}
 
         {/* Submit Button */}
         <TouchableOpacity
@@ -616,6 +811,7 @@ const CreateOrder = () => {
           </View>
         </View>
       </Modal>
+      <AcknowledgmentModal/>
     </SafeAreaView>
   );
 };
@@ -788,6 +984,7 @@ const styles = StyleSheet.create({
       justifyContent: 'flex-end',
     },
     modalContent: {
+      padding:10,
       backgroundColor: 'white',
       borderTopLeftRadius: 16,
       borderTopRightRadius: 16,
@@ -797,7 +994,7 @@ const styles = StyleSheet.create({
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      padding: 16,
+      padding: 10,
       borderBottomWidth: 1,
       borderBottomColor: '#eee',
     },
@@ -931,6 +1128,75 @@ const styles = StyleSheet.create({
       color: '#007bff',
       fontWeight: '600',
     },
+    partialPaymentSection: {
+      marginTop: 16,
+      padding: 16,
+      backgroundColor: '#f8f9fa',
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: '#dee2e6',
+    },
+    input: {
+      backgroundColor: 'white',
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: '#ddd',
+      padding: 12,
+      marginBottom: 16,
+    },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: '#f5f5f5',
+    },
+    loadingText: {
+      marginTop: 10,
+      fontSize: 16,
+      color: '#666',
+    },
+    modalFooter: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: 16,
+      borderTopWidth: 1,
+      borderTopColor: '#eee',
+    },
+    cancelButton: {
+      flex: 1,
+      backgroundColor: '#DC3545',
+      paddingVertical: 12,
+      borderRadius: 8,
+      alignItems: 'center',
+  },
+  cancelButtonText: {
+      color: '#FFFFFF',
+      fontSize: 16,
+      fontWeight: '600',
+  },
+  modalBody: {
+    maxHeight: 300,  // Adjust if needed
+  },
+  modalBodyContent: {
+    paddingBottom: 16,
+  },
+  confirmSubmitButton: {
+    margin: 5,
+    flex: 1,
+    backgroundColor: '#28A745',
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+},
+confirmCancelButton: {
+  margin: 5,
+    flex: 1,
+    backgroundColor: '#DC3545',
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+},
   });
   
   export default CreateOrder;

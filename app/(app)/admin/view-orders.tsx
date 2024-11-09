@@ -25,6 +25,7 @@ import * as XLSX from 'xlsx';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
 type Order = {
+  orderId:string;
   shopName: string;
   employeeName: string;
   distributorName: string;
@@ -41,6 +42,17 @@ type Order = {
   deliveryDate: string;
   deliverySlot: string;
   status: string;
+  partialPayment: PartialPayment | null; // Add this line
+  paymentStatus: string; // Add this line
+};
+type PartialPayment = {
+  id: number;
+  initialAmount: number;
+  remainingAmount: number;
+  dueDate: string;
+  paymentStatus: string;
+  createdAt: string;
+  updatedAt: string;
 };
 
 const OrderList = () => {
@@ -137,65 +149,120 @@ const OrderList = () => {
         Alert.alert('Warning', 'No orders to export.');
         return;
       }
-
+  
       if (!(await Sharing.isAvailableAsync())) {
         Alert.alert('Error', 'Sharing is not available on this device');
         return;
       }
-
+  
       const fileName = `OrderReport_${new Date().toLocaleDateString().replace(/\//g, '-')}.xlsx`;
       const fileUri = FileSystem.cacheDirectory + fileName;
-
+  
       const worksheetData = filteredOrders.map(order => ({
+        'Order id': order.orderId,
         'Shop Name': order.shopName,
         'Employee Name': order.employeeName,
         'Distributor Name': order.distributorName,
-        'Order Date': order.orderDate,
+        'Order Date': order.orderDate ? new Date(order.orderDate).toLocaleDateString() : '',
         'Contact Number': order.contactNumber,
-        'Total Amount': order.totalAmount,
+        'Total Amount': order.totalAmount.toFixed(2),
         'Payment Type': order.paymentType,
-        'Delivery Date': order.deliveryDate,
+        'Delivery Date': order.deliveryDate ? new Date(order.deliveryDate).toLocaleDateString() : '',
         'Delivery Slot': order.deliverySlot,
         'Status': order.status,
         'Products': order.products.map(p => {
-          // Build the product details
           const productDetails = p.variant 
             ? `${p.productName} (${p.variant})` 
-            : p.productName; // If no variant, just the product name
-      
-          // Return product details with quantity if quantity is greater than 0
+            : p.productName;
           return p.quantity > 0 ? `${productDetails} x${p.quantity}` : productDetails;
-        }).join('\n') // Using newline character for separation
+        }).join('\n'),
+        // Partial Payment data, formatted
+        'Advance Amount': order.partialPayment ? order.partialPayment.initialAmount.toFixed(2) : '',
+        'Balance Amount': order.partialPayment ? order.partialPayment.remainingAmount.toFixed(2) : '',
+        'Partial Payment Due Date': order.partialPayment ? new Date(order.partialPayment.dueDate).toLocaleDateString() : '',
+        'Partial Payment Status': order.partialPayment ? order.partialPayment.paymentStatus : '',
       }));
-      
-      
-
+  
       const worksheet = XLSX.utils.json_to_sheet(worksheetData);
+  
+      // Format header row: make them bold
+      const header = worksheet['!rows'] || [];
+      for (let i = 0; i < Object.keys(worksheetData[0]).length; i++) {
+        const cell = worksheet[XLSX.utils.encode_cell({ r: 0, c: i })];
+        if (cell) {
+          cell.s = { font: { bold: true } };
+        }
+      }
+  
+      // Auto-adjust column widths
+      const columnWidths: number[] = [];
+      worksheetData.forEach((row) => {
+        Object.keys(row).forEach((key) => {
+          const cellValue = row[key as keyof typeof row] ? row[key as keyof typeof row].toString() : '';
+          columnWidths.push(cellValue.length);
+        });
+      });
+  
+      worksheet['!cols'] = columnWidths.map((width) => ({
+        wpx: Math.min(200, width * 10)  // Limit max width
+      }));
+  
+      // Set borders for all cells
+      const range = worksheet['!ref'];
+
+      if (range) {
+        const decodedRange = XLSX.utils.decode_range(range);
+
+        // Loop through the rows and columns to apply formatting
+        for (let row = decodedRange.s.r; row <= decodedRange.e.r; row++) {
+          for (let col = decodedRange.s.c; col <= decodedRange.e.c; col++) {
+            const cell = worksheet[XLSX.utils.encode_cell({ r: row, c: col })];
+            if (cell) {
+              cell.s = {
+                border: {
+                  top: { style: 'thin' },
+                  left: { style: 'thin' },
+                  bottom: { style: 'thin' },
+                  right: { style: 'thin' },
+                },
+                alignment: { horizontal: 'center', vertical: 'center' }
+              };
+            }
+          }
+        }
+      } else {
+        console.error('Worksheet reference range not found');
+      }
+
+  
       const workbook = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(workbook, worksheet, "Orders");
-
+  
       const wbout = XLSX.write(workbook, {
         type: 'base64',
         bookType: 'xlsx'
       });
-
+  
       await FileSystem.writeAsStringAsync(fileUri, wbout, {
         encoding: FileSystem.EncodingType.Base64
       });
-
+  
       await Sharing.shareAsync(fileUri, {
         mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         dialogTitle: 'Export Orders Report',
         UTI: 'com.microsoft.excel.xlsx'
       });
-
+  
       await FileSystem.deleteAsync(fileUri, { idempotent: true });
-
+  
     } catch (error) {
       console.error('Export error:', error);
       Alert.alert('Export Failed', 'There was an error exporting the file. Please try again.');
     }
   };
+  
+  
+  
   const openModal = (order: Order) => {
     setSelectedOrder(order);
     setModalVisible(true);
@@ -217,7 +284,7 @@ const OrderList = () => {
       android_ripple={{ color: '#e0e0e0' }}
     >
       <View style={styles.cardHeader}>
-        <Text style={styles.shopName}>{item.shopName}</Text>
+        <Text style={styles.shopName}>Order id: {item.orderId}{'\n'}{item.shopName}</Text>
         <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) }]}>
           <Text style={styles.statusText}>{item.status}</Text>
         </View>
@@ -288,6 +355,28 @@ const OrderList = () => {
                     Total Amount: Rs. {selectedOrder.totalAmount.toFixed(2)}
                   </Text>
                 </View>
+                {selectedOrder?.partialPayment ? (
+                    <View style={styles.modalSection}>
+                      <Text style={styles.sectionTitle}>Partial Payment Details</Text>
+                      <Text style={styles.modalDetail}>
+                        Advance: ₹{selectedOrder.partialPayment.initialAmount.toLocaleString()}
+                      </Text>
+                      <Text style={styles.modalDetail}>
+                        Balance Amount: ₹{selectedOrder.partialPayment.remainingAmount.toLocaleString()}
+                      </Text>
+                      <Text style={styles.modalDetail}>
+                        Due Date: {new Date(selectedOrder.partialPayment.dueDate).toLocaleDateString()}
+                      </Text>
+                      <Text style={styles.modalDetail}>
+                        Payment Status: {selectedOrder.partialPayment.paymentStatus}
+                      </Text>
+                    </View>
+                  ) : (
+                    <View style={styles.modalSection}>
+                      <Text style={styles.infoText}>No partial payment details available.</Text>
+                    </View>
+                  )}
+
 
                 <View style={styles.modalSection}>
                   <Text style={styles.sectionTitle}>Delivery Information</Text>
