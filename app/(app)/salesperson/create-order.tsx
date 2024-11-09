@@ -355,6 +355,7 @@ const CreateOrder = () => {
       // Validate the form and log the validation result
       const isValid = validateForm();
       console.log('Form Validation Result:', isValid);
+    
   
       if (!isValid) {
         // If validation fails, show an alert and return early
@@ -397,6 +398,10 @@ const CreateOrder = () => {
     );
   }
   const AcknowledgmentModal = () => {
+    if (formData.paymentTerm === '') {
+      Alert.alert('Please select Payment term')
+      return;
+    }
     const [isSubmitting, setIsSubmitting] = useState(false);
   
     const handleConfirm = async () => {
@@ -674,18 +679,19 @@ const CreateOrder = () => {
         </View>
 
         {/* Updated Payment Terms picker to include PARTIAL */}
-        <Text style={styles.label}>Payment Terms *</Text>
-        <View style={styles.pickerContainer}>
-          <Picker
+          <Text style={styles.label}>Payment Terms *</Text>
+          <View style={styles.pickerContainer}>
+            <Picker
             selectedValue={formData.paymentTerm}
-            onValueChange={(value) => handleInputChange('paymentTerm', value)}
-          >
+              onValueChange={(value) => handleInputChange('paymentTerm', value)}
+            >
             <Picker.Item label="Select payment term" value="" /> 
-            <Picker.Item label="Cash on Delivery" value="COD" />
-            <Picker.Item label="Credit" value="CREDIT" />
-            <Picker.Item label="Partial Payment" value="PARTIAL" />
-          </Picker>
-        </View>
+              <Picker.Item label="Cash on Delivery" value="COD" />
+              <Picker.Item label="Credit" value="CREDIT" />
+              <Picker.Item label="Partial Payment" value="PARTIAL" />
+            </Picker>
+          </View>
+
 
         {/* Render partial payment fields when PARTIAL is selected */}
         {renderPartialPaymentFields()}

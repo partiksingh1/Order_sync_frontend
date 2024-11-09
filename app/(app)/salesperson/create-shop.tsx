@@ -147,7 +147,7 @@ const CreateShopkeeperForm = () => {
       }
     } catch (error: any) {
       
-      Alert.alert('Phone number Already taken');
+      Alert.alert('Phone number Already taken or Server Error :(');
     } finally {
       setLoading(false);
     }
@@ -193,20 +193,25 @@ const CreateShopkeeperForm = () => {
         {(Object.keys(formData) as Array<keyof FormData>).map((key) => (
           <View style={styles.inputCard} key={key}>
             <Text style={styles.label}>
-            *{key === 'name' 
+            {key === 'email' ? '' : '*'}
+            {key === 'name' 
               ? 'Shop Name' 
               : key === 'gpsLocation' 
               ? 'GPS Location of Shop' 
               : key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())
             }
-      </Text>
+          </Text>
+
             {renderFormField(key, formData[key])}
           </View>
         ))}
+          {image &&(
+            <Image source={{ uri: image }} style={styles.imagePreview} />
+          )}
 
         <TouchableOpacity onPress={() => handleImagePicker(true)} style={styles.button}>
           <Ionicons name="camera" size={24} color="white" />
-          <Text style={styles.buttonText}>SHOP IMAGE</Text>
+          <Text style={styles.buttonText}>FRONT SHOP IMAGE</Text>
         </TouchableOpacity>
 
         {image && (
