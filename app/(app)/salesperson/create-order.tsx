@@ -351,6 +351,10 @@ const CreateOrder = () => {
 
   // Form Submission
   const handleSubmit = async () => {
+    if (formData.paymentTerm === '') {
+      Alert.alert('Please select Payment term')
+      return;
+    }
     try {
       // Validate the form and log the validation result
       const isValid = validateForm();
@@ -398,13 +402,15 @@ const CreateOrder = () => {
     );
   }
   const AcknowledgmentModal = () => {
-    if (formData.paymentTerm === '') {
-      Alert.alert('Please select Payment term')
-      return;
-    }
+  
     const [isSubmitting, setIsSubmitting] = useState(false);
   
+  
     const handleConfirm = async () => {
+      if (formData.paymentTerm === '') {
+        Alert.alert('Please select Payment term')
+        return;
+      }
       try {
         setIsSubmitting(true);
         const token = await AsyncStorage.getItem('token');

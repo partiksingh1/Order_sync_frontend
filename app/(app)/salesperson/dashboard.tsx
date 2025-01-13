@@ -217,7 +217,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderRadius: 15,
     padding: 20,
-    alignItems: 'center',
+    textAlign: 'center',
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
@@ -236,7 +236,6 @@ const styles = StyleSheet.create({
   description: {
     fontSize: 14,
     color: '#666',
-    textAlign: 'center',
   },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
