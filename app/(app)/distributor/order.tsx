@@ -9,9 +9,9 @@ import {
   SafeAreaView,
   ActivityIndicator,
   Alert,
-  ScrollView,
   TextInput,
 } from 'react-native';
+import { ScrollView } from 'react-native-virtualized-view'
 import { Picker } from '@react-native-picker/picker';
 import axios from 'axios';
 import { Ionicons } from '@expo/vector-icons';
@@ -72,6 +72,7 @@ const PAYMENT_STATUSES = {
   PARTIAL: 'partial',
   COMPLETED: 'completed',
 } as const;
+
 
 // Components
 const OrderCard = React.memo(({ item, onPress }: OrderItemProps) => {
@@ -349,7 +350,10 @@ const DistributorOrdersScreen = () => {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [status, setStatus] = useState('');
   const [updating, setUpdating] = useState(false);
+  const [startDate, setStartDate] = useState<string>('');
+  const [startPickerVisible, setStartPickerVisible] = useState(false);
   const [updatingPayment, setUpdatingPayment] = useState(false);
+  const [filteredOrders, setFilteredOrders] = useState<Order[]>([]);
   const router = useRouter();
 
   // Partial Payment States
@@ -380,6 +384,41 @@ const DistributorOrdersScreen = () => {
     setPartialPaymentFormData(formData);
     setPartialPaymentConfirmVisible(true);
   }, []);
+
+  const handleStartDateChange = (event: any, selectedDate?: Date) => {
+    setStartPickerVisible(false);
+    if (selectedDate) {
+      setStartDate(selectedDate.toISOString().split('T')[0]);
+    }
+  };
+  const filterOrdersByDate = () => {
+    if (!startDate) {
+      Alert.alert('Warning', 'Please select the date.');
+      return;
+    }
+  
+    const start = new Date(startDate);
+    
+    // Reset the time of the start date to 00:00:00 to compare only the date part
+    start.setHours(0, 0, 0, 0);
+  
+    const filtered = orders.filter((order) => {
+      const deliveryDate = new Date(order.deliveryDate);
+  
+      // Reset the time of the delivery date to 00:00:00 to compare only the date part
+      deliveryDate.setHours(0, 0, 0, 0);
+  
+      // Compare the numeric value of the date
+      return deliveryDate.getTime() === start.getTime();
+    });
+  
+    setFilteredOrders(filtered);
+  };
+  
+  const resetFilters = () => {
+    setStartDate('');
+    setFilteredOrders(orders);
+  };
 
   const handleUpdatePartialPayment = useCallback(async () => {
     if (!selectedOrder || !partialPaymentFormData) return;
@@ -423,7 +462,8 @@ const DistributorOrdersScreen = () => {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
-      setOrders(response.data.orders);  // Update to response.data.orders
+      setOrders(response.data.orders); 
+      setFilteredOrders(response.data.orders); // Update to response.data.orders
     } catch (error: any) {
       console.error('Failed to fetch orders:', error);
       Alert.alert(
@@ -481,19 +521,19 @@ const DistributorOrdersScreen = () => {
     }
   }, [selectedOrder, status, deliveryDate, fetchOrders]);
 
-  const sortedOrders = useMemo(() => {
-    return [...orders].sort((a, b) => {
-      // Sort by status priority (Pending > Delivered > Cancelled)
-      const statusPriority = { PENDING: 0, DELIVERED: 1, CANCELED: 2 };
-      const statusDiff = statusPriority[a.status as keyof typeof statusPriority] - 
-                        statusPriority[b.status as keyof typeof statusPriority];
+  // const sortedOrders = useMemo(() => {
+  //   return [...orders].sort((a, b) => {
+  //     // Sort by status priority (Pending > Delivered > Cancelled)
+  //     const statusPriority = { PENDING: 0, DELIVERED: 1, CANCELED: 2 };
+  //     const statusDiff = statusPriority[a.status as keyof typeof statusPriority] - 
+  //                       statusPriority[b.status as keyof typeof statusPriority];
       
-      if (statusDiff !== 0) return statusDiff;
+  //     if (statusDiff !== 0) return statusDiff;
       
-      // If same status, sort by delivery date (newest first)
-      return new Date(b.deliveryDate).getTime() - new Date(a.deliveryDate).getTime();
-    });
-  }, [orders]);
+  //     // If same status, sort by delivery date (newest first)
+  //     return new Date(b.deliveryDate).getTime() - new Date(a.deliveryDate).getTime();
+  //   });
+  // }, [orders]);
 
   const renderOrderItem = useCallback(({ item }: { item: Order }) => (
     <OrderCard item={item} onPress={handleOrderPress} />
@@ -508,7 +548,7 @@ const DistributorOrdersScreen = () => {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <ScrollView style={styles.container}>
  
         <View style={styles.header}>
         <TouchableOpacity
@@ -522,8 +562,47 @@ const DistributorOrdersScreen = () => {
           <Ionicons name="refresh" size={24} color="#007BFF" />
         </TouchableOpacity>
       </View>
+      <View style={styles.filterSection}>
+        <View style={styles.dateContainer}>
+          <TouchableOpacity 
+            style={styles.dateButton}
+            onPress={() => setStartPickerVisible(true)}
+          >
+            <Ionicons name="calendar-outline" size={20} color="#007AFF" />
+            <Text style={styles.dateButtonText}>
+              {startDate || "Select Date"}
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.filterButtons}>
+          <TouchableOpacity 
+            style={[styles.button, styles.filterButton]} 
+            onPress={filterOrdersByDate}
+          >
+            <Ionicons name="search-outline" size={20} color="#fff" />
+            <Text style={styles.buttonText}>Filter</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={[styles.button, styles.resetButton]} 
+            onPress={resetFilters}
+          >
+            <Ionicons name="refresh-outline" size={20} color="#fff" />
+            <Text style={styles.buttonText}>Reset</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+      {startPickerVisible && (
+        <DateTimePicker
+          value={startDate ? new Date(startDate) : new Date()}
+          mode="date"
+          display="default"
+          onChange={handleStartDateChange}
+        />
+      )}
       <FlatList
-        data={sortedOrders}
+        data={filteredOrders}
         renderItem={renderOrderItem}
         keyExtractor={(item) => item.id.toString()}
         contentContainerStyle={styles.listContainer}
@@ -643,7 +722,7 @@ const DistributorOrdersScreen = () => {
         onCancel={() => setPartialPaymentConfirmVisible(false)}
         loading={updatingPayment}
       />
-    </SafeAreaView>
+    </ScrollView>
   );
 };
 
@@ -662,9 +741,6 @@ const styles = StyleSheet.create({
   },
   listContainer: {
     padding: 16,
-  },
-  filterButton: {
-    marginRight: 16,
   },
   card: {
     backgroundColor: '#FFFFFF',
@@ -866,7 +942,6 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 20,
     paddingHorizontal: 4,
   },
   backButton: {
@@ -882,6 +957,52 @@ const styles = StyleSheet.create({
     color: '#1A1A1A',
     marginLeft: 8,
   },
+  filterSection: {
+    backgroundColor: '#F8F9FA',
+    padding: 16,
+    marginBottom: 8,
+},
+dateContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginBottom: 12,
+
+},
+dateButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent:'center',
+    backgroundColor: '#f0f0f0',
+    padding: 12,
+    borderRadius: 8,
+    flex: 0.48,
+},
+dateButtonText: {
+    marginLeft: 8,
+    color: '#333',
+    fontSize: 14,
+},
+filterButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+},
+button: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 12,
+    borderRadius: 8,
+    elevation: 1,
+},
+filterButton: {
+    backgroundColor: '#007AFF',
+    flex: 0.48,
+},
+resetButton: {
+    backgroundColor: '#FF3B30',
+    flex: 0.48,
+},
 });
 
 export default DistributorOrdersScreen;
