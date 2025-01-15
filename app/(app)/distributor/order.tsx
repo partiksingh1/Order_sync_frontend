@@ -24,6 +24,8 @@ interface OrderItem {
   productName: string;
   quantity: number;
   price: number;
+  productId: number;
+  variantId: number;
 }
 
 interface Shopkeeper {
@@ -59,6 +61,14 @@ interface PartialPaymentForm {
   remainingAmount: string;
   dueDate: Date;
   paymentStatus: string;
+}
+interface QuantityForm {
+  items: {
+    productName: any;
+    productId: number;
+    variantId?: number; // Optional for variant, depending on your logic
+    quantity: number;
+  }[];
 }
 
 const ORDER_STATUSES = {
@@ -158,7 +168,6 @@ const ConfirmationModal = React.memo(({
     </View>
   </Modal>
 ));
-
 const PartialPaymentForm = React.memo(({ 
   partialPayment,
   formData,
@@ -279,6 +288,94 @@ const PartialPaymentForm = React.memo(({
     </View>
   );
 });
+const QuantityForm = React.memo(({ 
+  orderItem, 
+  formData, 
+  onUpdate, 
+  onClose, 
+  loading 
+}: { 
+  orderItem: OrderItem | undefined;
+  formData: QuantityForm;
+  onUpdate: (formData: QuantityForm) => void;
+  onClose: () => void;
+  loading: boolean;
+}) => {
+  const [localFormData, setLocalFormData] = useState<QuantityForm>(formData);
+
+  // Handle quantity change for each item
+  const handleQuantityChange = (index: number, newQuantity: string) => {
+    const parsedQuantity = newQuantity ? parseInt(newQuantity) : 0;
+  
+    if (isNaN(parsedQuantity) || parsedQuantity <= 0) {
+      Alert.alert('Error', 'Quantity must be a positive number');
+      return;
+    }
+  
+    // Update the specific item in the form data
+    const updatedItems = [...localFormData.items];
+    updatedItems[index].quantity = parsedQuantity;
+  
+    setLocalFormData(prev => ({ ...prev, items: updatedItems }));
+  };
+  
+
+  const handleSubmit = () => {
+    // Ensure all items have valid quantities
+    if (!localFormData.items || localFormData.items.some(item => item.quantity <= 0)) {
+      Alert.alert('Error', 'Please ensure all quantities are greater than 0');
+      return;
+    }
+    onUpdate(localFormData);  // Call the onUpdate function passed as a prop
+  };
+
+  return (
+    <View style={styles.partialPaymentForm}>
+      <View style={styles.formHeader}>
+        <Text style={styles.sectionTitle}>Update Quantities</Text>
+        <TouchableOpacity onPress={onClose}>
+          <Ionicons name="close" size={24} color="#000" />
+        </TouchableOpacity>
+      </View>
+
+      {localFormData.items.map((item, index) => (
+        <View key={index} style={styles.formField}>
+          <Text style={styles.fieldLabel}>{`Product ${item.productName}`}</Text>
+
+          <Text style={styles.fieldLabel}>Quantity</Text>
+          <TextInput
+            style={styles.input}
+            value={String(item.quantity)}
+            onChangeText={(text) => handleQuantityChange(index, text)}
+            keyboardType="numeric"
+            placeholder="Enter quantity"
+          />
+        </View>
+      ))}
+
+      <View style={styles.formActions}>
+        <TouchableOpacity
+          style={[styles.cancelButton, { flex: 1 }]}
+          onPress={onClose}
+        >
+          <Text style={styles.buttonText}>Cancel</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.updateButton, loading && styles.disabledButton, { flex: 1 }]}
+          onPress={handleSubmit}
+          disabled={loading}
+        >
+          {loading ? (
+            <ActivityIndicator color="#FFFFFF" size="small" />
+          ) : (
+            <Text style={styles.buttonText}>Confirm Update</Text>
+          )}
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+});
+
 
 const PartialPaymentConfirmationModal = React.memo(({ 
   visible, 
@@ -323,6 +420,51 @@ const PartialPaymentConfirmationModal = React.memo(({
     </View>
   </Modal>
 ));
+const QuantityUpdateConfirmationModal = React.memo(({ 
+  visible, 
+  onConfirm, 
+  onCancel, 
+  loading 
+}: { 
+  visible: boolean;
+  onConfirm: () => void;
+  onCancel: () => void;
+  loading: boolean;
+}) => (
+  <Modal
+    animationType="fade"
+    transparent={true}
+    visible={visible}
+    onRequestClose={onCancel}
+  >
+    <View style={styles.modalContainer}>
+      <View style={styles.confirmationContent}>
+        <Text style={styles.modalTitle}>Confirm Quantity Update</Text>
+        <Text style={styles.modalDetail}>
+          Are you sure you want to update the quantity details?
+        </Text>
+        <View style={styles.buttonContainer}>
+          <TouchableOpacity 
+            style={[styles.confirmButton, loading && styles.disabledButton]}
+            onPress={onConfirm}
+            disabled={loading}
+          >
+            {loading ? (
+              <ActivityIndicator color="#FFFFFF" size="small" />
+            ) : (
+              <Text style={styles.buttonText}>Confirm</Text>
+            )}
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.cancelButton} onPress={onCancel}>
+            <Text style={styles.buttonText}>Cancel</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </View>
+  </Modal>
+));
+
+
 
 // Helper Functions
 const getStatusColor = (status: string) => {
@@ -358,8 +500,11 @@ const DistributorOrdersScreen = () => {
 
   // Partial Payment States
   const [showPartialPaymentForm, setShowPartialPaymentForm] = useState(false);
+  const [showQtyChange, setShowQtyChange] = useState(false);
+  const [qtyConfirmVisible, setQtyConfirmVisible] = useState(false);
   const [partialPaymentConfirmVisible, setPartialPaymentConfirmVisible] = useState(false);
   const [partialPaymentFormData, setPartialPaymentFormData] = useState<PartialPaymentForm | null>(null);
+  const [quantityFormData, setQuantityFormData] = useState<QuantityForm | null>(null);
 
   const handleShowPartialPayment = useCallback(() => {
     if (selectedOrder?.partialPayment) {
@@ -380,10 +525,40 @@ const DistributorOrdersScreen = () => {
     setShowPartialPaymentForm(true);
   }, [selectedOrder]);
 
+  // handle update qty change
+
+  const handleUpdateQty = useCallback(() => {
+    if (selectedOrder?.items && selectedOrder.items.length > 0) {
+      console.log("selected items",selectedOrder.items);
+      const updatedItems = selectedOrder.items.map((item) => ({
+        productName: item.productName,
+        productId: item.productId,        // Make sure productId is included
+        variantId: item.variantId,        // Make sure variantId is included
+        quantity: item.quantity,
+        price: item.price,
+      }));
+  
+      // Set the state to store the items to update (this can be useful for the form)
+      setQuantityFormData({ items: updatedItems });
+    } else {
+      console.error('No items found in the order.');
+    }
+  
+    // Show the quantity change form
+    setShowQtyChange(true);
+  }, [selectedOrder]);
+  
+  
+
   const handlePartialPaymentSubmit = useCallback((formData: PartialPaymentForm) => {
     setPartialPaymentFormData(formData);
     setPartialPaymentConfirmVisible(true);
   }, []);
+  const handleQuantityChangeSubmit = useCallback((formData: QuantityForm) => {
+    setQuantityFormData(formData);
+    setQtyConfirmVisible(true);
+  }, []);
+
 
   const handleStartDateChange = (event: any, selectedDate?: Date) => {
     setStartPickerVisible(false);
@@ -521,6 +696,47 @@ const DistributorOrdersScreen = () => {
     }
   }, [selectedOrder, status, deliveryDate, fetchOrders]);
 
+  const handleQtyChange = useCallback(async () => {
+    if (!selectedOrder || !quantityFormData) return;
+  
+    setUpdating(true);  // Show loading spinner or indicator
+  
+    // Map the items from the form data, ensuring productId, variantId, and quantity are included
+    const updatedItems = quantityFormData.items.map((item) => ({
+      productId: item.productId,  // Ensure this is set
+      variantId: item.variantId,  // Ensure this is set
+      quantity: item.quantity,    // The updated quantity from form data
+    }));
+  
+    console.log("updatedItems", updatedItems);  // Check the items here
+  
+    try {
+      const token = await AsyncStorage.getItem('token');
+  
+      const response = await axios.put(
+        `${process.env.EXPO_PUBLIC_API_URL}/distributor/orders/${selectedOrder.id}`,
+        {
+          items: updatedItems,  // Send the updated quantities of items
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+  
+      if (response.status === 200) {
+        Alert.alert('Success', 'Order updated successfully!');
+        await fetchOrders();  // Refresh orders after update
+        setShowQtyChange(false);  // Close the modal
+        setQtyConfirmVisible(false);  // Hide confirmation if applicable
+      }
+    } catch (error: any) {
+      Alert.alert('Error', error.response?.data?.message || 'Failed to update order');
+    } finally {
+      setUpdating(false);  // Hide loading indicator
+    }
+  }, [selectedOrder, quantityFormData, fetchOrders]);
+  
+
   // const sortedOrders = useMemo(() => {
   //   return [...orders].sort((a, b) => {
   //     // Sort by status priority (Pending > Delivered > Cancelled)
@@ -628,6 +844,12 @@ const DistributorOrdersScreen = () => {
             {selectedOrder && (
               <>
                 <OrderItemsList items={selectedOrder.items} />
+                <TouchableOpacity
+                      style={styles.partialPaymentButton}
+                      onPress={handleUpdateQty}
+                    >
+                      <Text style={styles.buttonText}>Update Qunatity Change</Text>
+                </TouchableOpacity>
 
                 <View style={styles.orderActions}>
                   <View style={styles.formField}>
@@ -716,6 +938,35 @@ const DistributorOrdersScreen = () => {
         </Modal>
       )}
 
+      {/* handle quantity */}
+      {showQtyChange && quantityFormData && (
+        <Modal
+          animationType="slide"
+          transparent={true}
+          visible={showQtyChange}
+          onRequestClose={() => setShowQtyChange(false)}
+        >
+          <View style={styles.modalContainer}>
+            <View style={styles.modalContent}>
+              <QuantityForm
+                orderItem={selectedOrder?.items[0]}
+                formData={quantityFormData}
+                onUpdate={handleQuantityChangeSubmit}
+                onClose={() => setShowQtyChange(false)}
+                loading={updating}
+              />
+            </View>
+          </View>
+        </Modal>
+      )}
+
+      <QuantityUpdateConfirmationModal
+      visible={qtyConfirmVisible}
+      onConfirm={handleQtyChange}
+      onCancel={() => setQtyConfirmVisible(false)}
+      loading={updating}
+      />
+
       <PartialPaymentConfirmationModal
         visible={partialPaymentConfirmVisible}
         onConfirm={handleUpdatePartialPayment}
@@ -726,7 +977,7 @@ const DistributorOrdersScreen = () => {
   );
 };
 
-const styles = StyleSheet.create({
+export const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F8F9FA',
