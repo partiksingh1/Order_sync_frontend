@@ -58,8 +58,8 @@ export const OrderCard = React.memo(({ item, onPress }: OrderItemProps) => {
         style={[styles.card, getStatusStyle(item.status)]} 
         onPress={() => onPress(item)}
       >
-        <Text style={styles.orderNumber}>Order ID: #{item.id}</Text>
-        <Text style={styles.orderDetail}>Shopkeeper: {item.shopkeeper.name}</Text>
+        <Text style={styles.orderNumber}>Shopkeeper: {item.shopkeeper.name}</Text>
+        <Text style={styles.orderDetail}>Order ID: #{item.id}</Text>
         <Text style={styles.orderDetail}>Contact: {item.shopkeeper.contactNumber}</Text>
         <Text style={styles.orderDetail}>Delivery: {formattedDate}</Text>
         <Text style={[styles.orderDetail, { fontWeight: 'bold' }]}>Payment Type: {item.paymentTerm}</Text>

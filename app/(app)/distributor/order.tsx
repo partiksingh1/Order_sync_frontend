@@ -83,6 +83,22 @@ const PAYMENT_STATUSES = {
   COMPLETED: 'completed',
 } as const;
 
+
+// Helper Functions
+const getStatusColor = (status: string) => {
+  const colors = {
+    PENDING: '#FFA500',
+    DELIVERED: '#28A745',
+    CANCELED: '#DC3545',
+  };
+  return colors[status as keyof typeof colors] || '#000000';
+};
+
+const getStatusStyle = (status: string) => ({
+  borderLeftWidth: 5,
+  borderLeftColor: getStatusColor(status),
+});
+
 // Main Component
 const DistributorOrdersScreen = () => {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -287,18 +303,16 @@ const DistributorOrdersScreen = () => {
 
       if (response.status === 200) {
         Alert.alert('Success', 'Order updated successfully!');
+        await fetchOrders();
         setModalVisible(false);
         setConfirmationVisible(false);
-        await fetchOrders();
       }
     } catch (error: any) {
       Alert.alert('Error', error.response?.data?.message || 'Failed to update order');
     } finally {
       setUpdating(false);
-      setModalVisible(false);
-      setConfirmationVisible(false);
     }
-  }, [selectedOrder, deliveryDate, fetchOrders]);
+  }, [selectedOrder, status, deliveryDate, fetchOrders]);
 
   const handleQtyChange = useCallback(async () => {
     if (!selectedOrder || !quantityFormData) return;
@@ -452,7 +466,7 @@ const DistributorOrdersScreen = () => {
                       style={styles.partialPaymentButton}
                       onPress={handleUpdateQty}
                     >
-                      <Text style={styles.buttonText}>Update Qunatity Change</Text>
+                      <Text style={styles.buttonText}>Update Quantity Change</Text>
                 </TouchableOpacity>
 
                 <View style={styles.orderActions}>
