@@ -22,9 +22,15 @@ interface Order {
     paymentStatus: string;
   }
   interface Shopkeeper {
+    id:number
     name: string;
     contactNumber: string;
+    balance?: number;
   }
+  // interface Shopkeeper {
+  //   name: string;
+  //   contactNumber: string;
+  // }
   interface OrderItem {
     productName: string;
     quantity: number;
@@ -58,8 +64,24 @@ export const OrderCard = React.memo(({ item, onPress }: OrderItemProps) => {
         style={[styles.card, getStatusStyle(item.status)]} 
         onPress={() => onPress(item)}
       >
+         <View style={{ position: 'relative' }}>
+        {item.shopkeeper?.balance != null && (
+          <Text style={[styles.orderDetail, { 
+            position: 'absolute', 
+            top: 0, 
+            right: 10, 
+            backgroundColor: '#FFD700', // Highlight color
+            padding: 0,
+            borderRadius: 5,
+            fontWeight: 'bold',
+            color: '#000' // Text color
+          }]}>
+            Shop Balance Amount: ₹{item.shopkeeper.balance.toLocaleString()}
+          </Text>
+        )}
+      </View>
+      <Text style={styles.orderDetail}>Order ID: #{item.id}</Text>
         <Text style={styles.orderNumber}>Shopkeeper: {item.shopkeeper.name}</Text>
-        <Text style={styles.orderDetail}>Order ID: #{item.id}</Text>
         <Text style={styles.orderDetail}>Contact: {item.shopkeeper.contactNumber}</Text>
         <Text style={styles.orderDetail}>Delivery: {formattedDate}</Text>
         <Text style={[styles.orderDetail, { fontWeight: 'bold' }]}>Payment Type: {item.paymentTerm}</Text>
@@ -67,7 +89,7 @@ export const OrderCard = React.memo(({ item, onPress }: OrderItemProps) => {
         {item.partialPayment && (
     <>
       <Text style={styles.orderDetail}>Advance Amount: ₹{item.partialPayment.initialAmount.toLocaleString()}</Text>
-      <Text style={styles.orderDetail}>Balance Amount: ₹{item.partialPayment.remainingAmount.toLocaleString()}</Text>
+      <Text style={styles.orderDetail}>Partial payment Balance Amount: ₹{item.partialPayment.remainingAmount.toLocaleString()}</Text>
       <Text style={styles.orderDetail}>Payment Status: {item.partialPayment.paymentStatus}</Text>
     </>
   )}

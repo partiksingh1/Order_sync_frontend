@@ -34,8 +34,10 @@ interface OrderItem {
 }
 
 interface Shopkeeper {
+  id: number;
   name: string;
   contactNumber: string;
+  balance?: number;
 }
 
 interface PartialPayment {
@@ -50,10 +52,13 @@ interface Order {
   deliveryDate: string;
   totalAmount: number;
   status: string;
+  // shopkeeper: Shopkeeper & {
+  //   balance?: number;
+  // };
   shopkeeper: Shopkeeper;
   items: OrderItem[];
   partialPayment?: PartialPayment;
-  paymentTerm:string
+  paymentTerm: string
 }
 
 interface PartialPaymentForm {
@@ -147,7 +152,7 @@ const DistributorOrdersScreen = () => {
 
   const handleUpdateQty = useCallback(() => {
     if (selectedOrder?.items && selectedOrder.items.length > 0) {
-      console.log("selected items",selectedOrder.items);
+      console.log("selected items", selectedOrder.items);
       const updatedItems = selectedOrder.items.map((item) => ({
         productName: item.productName,
         productId: item.productId,        // Make sure productId is included
@@ -155,18 +160,18 @@ const DistributorOrdersScreen = () => {
         quantity: item.quantity,
         price: item.price,
       }));
-  
+
       // Set the state to store the items to update (this can be useful for the form)
       setQuantityFormData({ items: updatedItems });
     } else {
       console.error('No items found in the order.');
     }
-  
+
     // Show the quantity change form
     setShowQtyChange(true);
   }, [selectedOrder]);
-  
-  
+
+
 
   const handlePartialPaymentSubmit = useCallback((formData: PartialPaymentForm) => {
     setPartialPaymentFormData(formData);
@@ -189,25 +194,25 @@ const DistributorOrdersScreen = () => {
       Alert.alert('Warning', 'Please select the date.');
       return;
     }
-  
+
     const start = new Date(startDate);
-    
+
     // Reset the time of the start date to 00:00:00 to compare only the date part
     start.setHours(0, 0, 0, 0);
-  
+
     const filtered = orders.filter((order) => {
       const deliveryDate = new Date(order.deliveryDate);
-  
+
       // Reset the time of the delivery date to 00:00:00 to compare only the date part
       deliveryDate.setHours(0, 0, 0, 0);
-  
+
       // Compare the numeric value of the date
       return deliveryDate.getTime() === start.getTime();
     });
-  
+
     setFilteredOrders(filtered);
   };
-  
+
   const resetFilters = () => {
     setStartDate('');
     setFilteredOrders(orders);
@@ -244,19 +249,50 @@ const DistributorOrdersScreen = () => {
     } finally {
       setUpdatingPayment(false);
     }
-  }, [selectedOrder, partialPaymentFormData, ]);
+  }, [selectedOrder, partialPaymentFormData,]);
 
   const fetchOrders = useCallback(async () => {
     try {
       const token = await AsyncStorage.getItem('token');
-      const response = await axios.get(
+      // Fetch orders
+      const ordersResponse = await axios.get(
         `${process.env.EXPO_PUBLIC_API_URL}/distributor/get-orders`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
-      setOrders(response.data.orders); 
-      setFilteredOrders(response.data.orders); // Update to response.data.orders
+      console.log("ordersResponse data orders", ordersResponse.data.orders);
+
+      //Fetch shopkeeper balances
+      const balancesResponse = await axios.get(
+        `${process.env.EXPO_PUBLIC_API_URL}/distributor/shopkeepers/balances`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      console.log("balancesResponse response: ", balancesResponse.data);
+
+      // Map balances to orders
+      const ordersWithBalances = ordersResponse.data.orders.map((order: Order) => {
+        const shopkeeperBalance = balancesResponse.data.shopkeepers.find(
+          (s: any) => s.name === order.shopkeeper.name // Change this line to match by name
+        );
+        return {
+          ...order,
+          shopkeeper: {
+            ...order.shopkeeper,
+            balance: shopkeeperBalance?.totalBalance || 0,
+          },
+        };
+      });
+
+      //Check if orders are mapped properly
+      console.log("Orders with balances: ", ordersWithBalances);
+
+      setOrders(ordersWithBalances);
+      setFilteredOrders(ordersWithBalances);
+
     } catch (error: any) {
       console.error('Failed to fetch orders:', error);
       Alert.alert(
@@ -268,9 +304,11 @@ const DistributorOrdersScreen = () => {
     }
   }, []);
 
+
   useEffect(() => {
     fetchOrders();
   }, [fetchOrders]);
+
 
   const handleOrderPress = useCallback((order: Order) => {
     setSelectedOrder(order);
@@ -316,21 +354,21 @@ const DistributorOrdersScreen = () => {
 
   const handleQtyChange = useCallback(async () => {
     if (!selectedOrder || !quantityFormData) return;
-  
+
     setUpdating(true);  // Show loading spinner or indicator
-  
+
     // Map the items from the form data, ensuring productId, variantId, and quantity are included
     const updatedItems = quantityFormData.items.map((item) => ({
       productId: item.productId,  // Ensure this is set
       variantId: item.variantId,  // Ensure this is set
       quantity: item.quantity,    // The updated quantity from form data
     }));
-  
+
     console.log("updatedItems", updatedItems);  // Check the items here
-  
+
     try {
       const token = await AsyncStorage.getItem('token');
-  
+
       const response = await axios.put(
         `${process.env.EXPO_PUBLIC_API_URL}/distributor/orders/${selectedOrder.id}`,
         {
@@ -340,7 +378,7 @@ const DistributorOrdersScreen = () => {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
-  
+
       if (response.status === 200) {
         Alert.alert('Success', 'Order updated successfully!');
         await fetchOrders();  // Refresh orders after update
@@ -353,7 +391,7 @@ const DistributorOrdersScreen = () => {
       setUpdating(false);  // Hide loading indicator
     }
   }, [selectedOrder, quantityFormData, fetchOrders]);
-  
+
 
   // const sortedOrders = useMemo(() => {
   //   return [...orders].sort((a, b) => {
@@ -361,9 +399,9 @@ const DistributorOrdersScreen = () => {
   //     const statusPriority = { PENDING: 0, DELIVERED: 1, CANCELED: 2 };
   //     const statusDiff = statusPriority[a.status as keyof typeof statusPriority] - 
   //                       statusPriority[b.status as keyof typeof statusPriority];
-      
+
   //     if (statusDiff !== 0) return statusDiff;
-      
+
   //     // If same status, sort by delivery date (newest first)
   //     return new Date(b.deliveryDate).getTime() - new Date(a.deliveryDate).getTime();
   //   });
@@ -383,8 +421,8 @@ const DistributorOrdersScreen = () => {
 
   return (
     <ScrollView style={styles.container}>
- 
-        <View style={styles.header}>
+
+      <View style={styles.header}>
         <TouchableOpacity
           onPress={() => router.replace('/(app)/distributor/dashboard')}
           style={styles.backButton}
@@ -398,7 +436,7 @@ const DistributorOrdersScreen = () => {
       </View>
       <View style={styles.filterSection}>
         <View style={styles.dateContainer}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.dateButton}
             onPress={() => setStartPickerVisible(true)}
           >
@@ -410,16 +448,16 @@ const DistributorOrdersScreen = () => {
         </View>
 
         <View style={styles.filterButtons}>
-          <TouchableOpacity 
-            style={[styles.button, styles.filterButton]} 
+          <TouchableOpacity
+            style={[styles.button, styles.filterButton]}
             onPress={filterOrdersByDate}
           >
             <Ionicons name="search-outline" size={20} color="#fff" />
             <Text style={styles.buttonText}>Filter</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity 
-            style={[styles.button, styles.resetButton]} 
+          <TouchableOpacity
+            style={[styles.button, styles.resetButton]}
             onPress={resetFilters}
           >
             <Ionicons name="refresh-outline" size={20} color="#fff" />
@@ -463,10 +501,10 @@ const DistributorOrdersScreen = () => {
               <>
                 <OrderItemsList items={selectedOrder.items} />
                 <TouchableOpacity
-                      style={styles.partialPaymentButton}
-                      onPress={handleUpdateQty}
-                    >
-                      <Text style={styles.buttonText}>Update Quantity Change</Text>
+                  style={styles.partialPaymentButton}
+                  onPress={handleUpdateQty}
+                >
+                  <Text style={styles.buttonText}>Update Quantity Change</Text>
                 </TouchableOpacity>
 
                 <View style={styles.orderActions}>
@@ -579,10 +617,10 @@ const DistributorOrdersScreen = () => {
       )}
 
       <QuantityUpdateConfirmationModal
-      visible={qtyConfirmVisible}
-      onConfirm={handleQtyChange}
-      onCancel={() => setQtyConfirmVisible(false)}
-      loading={updating}
+        visible={qtyConfirmVisible}
+        onConfirm={handleQtyChange}
+        onCancel={() => setQtyConfirmVisible(false)}
+        loading={updating}
       />
 
       <PartialPaymentConfirmationModal
