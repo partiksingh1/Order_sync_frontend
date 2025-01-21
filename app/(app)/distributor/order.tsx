@@ -7,7 +7,6 @@ import {
   Modal,
   ActivityIndicator,
   Alert,
-  TextInput,
 } from 'react-native';
 import { styles } from './styles/styles';
 import { ScrollView } from 'react-native-virtualized-view'
@@ -23,6 +22,7 @@ import { QuantityForm, QuantityUpdateConfirmationModal } from './distributor-com
 import { ConfirmationModal } from './distributor-component.tsx/ConfirmationModal';
 import { PartialPaymentForm } from './distributor-component.tsx/PartialPaymentForm';
 import { PartialPaymentConfirmationModal } from './distributor-component.tsx/PartialPaymentConfirmationModal';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 // Types
 interface OrderItem {
@@ -78,6 +78,7 @@ interface QuantityForm {
 
 const ORDER_STATUSES = {
   PENDING: 'Pending',
+  CONFIRMED: 'Confirmed',
   DELIVERED: 'Delivered',
   CANCELED: 'Cancelled',
 } as const;
@@ -93,6 +94,7 @@ const PAYMENT_STATUSES = {
 const getStatusColor = (status: string) => {
   const colors = {
     PENDING: '#FFA500',
+    CONFIRMED: '#FFA500',
     DELIVERED: '#28A745',
     CANCELED: '#DC3545',
   };
@@ -252,6 +254,7 @@ const DistributorOrdersScreen = () => {
   }, [selectedOrder, partialPaymentFormData,]);
 
   const fetchOrders = useCallback(async () => {
+    setLoading(true)
     try {
       const token = await AsyncStorage.getItem('token');
       // Fetch orders
@@ -420,7 +423,7 @@ const DistributorOrdersScreen = () => {
   }
 
   return (
-    <ScrollView style={styles.container}>
+    <SafeAreaView style={styles.container}>
 
       <View style={styles.header}>
         <TouchableOpacity
@@ -496,10 +499,25 @@ const DistributorOrdersScreen = () => {
                 <Ionicons name="close" size={24} color="#000" />
               </TouchableOpacity>
             </View>
-
-            {selectedOrder && (
+            {selectedOrder?.status === "PENDING" && (
+              <View style={styles.formField}>
+                <Text style={styles.fieldLabel}>Status</Text>
+                <View style={styles.pickerWrapper}>
+                  <Picker
+                    selectedValue={status}
+                    onValueChange={handleStatusChange}
+                    style={styles.picker}
+                  >
+                    {Object.entries(ORDER_STATUSES).map(([key, value]) => (
+                      <Picker.Item key={key} label={value} value={key} />
+                    ))}
+                  </Picker>
+                </View>
+              </View>
+            )}
+            {selectedOrder?.status !== "PENDING" && (
               <>
-                <OrderItemsList items={selectedOrder.items} />
+                <OrderItemsList items={selectedOrder?.items || []} />
                 <TouchableOpacity
                   style={styles.partialPaymentButton}
                   onPress={handleUpdateQty}
@@ -550,7 +568,6 @@ const DistributorOrdersScreen = () => {
                       </Picker>
                     </View>
                   </View>
-
                   {selectedOrder?.partialPayment && (
                     <TouchableOpacity
                       style={styles.partialPaymentButton}
@@ -629,7 +646,7 @@ const DistributorOrdersScreen = () => {
         onCancel={() => setPartialPaymentConfirmVisible(false)}
         loading={updatingPayment}
       />
-    </ScrollView>
+    </SafeAreaView>
   );
 };
 

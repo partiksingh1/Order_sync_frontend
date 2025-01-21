@@ -4,7 +4,7 @@ export const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: '#F8F9FA',
         padding: 16,
-        paddingTop: 50,
+        paddingTop: 10,
     },
     loadingContainer: {
         flex: 1,
@@ -129,7 +129,7 @@ export const styles = StyleSheet.create({
     sectionTitle: {
         fontSize: 16,
         fontWeight: 'bold',
-        marginBottom: 8,
+        marginBottom: 1,
     },
     itemContainer: {
         backgroundColor: '#F8F9FA',
