@@ -232,8 +232,8 @@ export const styles = StyleSheet.create({
     },
     filterSection: {
         backgroundColor: '#F8F9FA',
-        padding: 16,
-        marginBottom: 8,
+        padding: 8,
+        marginBottom: 1,
     },
     dateContainer: {
         flexDirection: 'row',
@@ -258,7 +258,7 @@ export const styles = StyleSheet.create({
     filterButtons: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        marginBottom: 12,
+        marginBottom: 8,
     },
     button: {
         flexDirection: 'row',
@@ -276,4 +276,21 @@ export const styles = StyleSheet.create({
         backgroundColor: '#FF3B30',
         flex: 0.48,
     },
+    searchContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#fff',
+        margin: 2,
+        paddingHorizontal: 8,
+        borderRadius: 8,
+        elevation: 2,
+      },
+      searchIcon: {
+        marginRight: 8,
+      },
+      searchInput: {
+        flex: 1,
+        paddingVertical: 12,
+        fontSize: 16,
+      },
 });

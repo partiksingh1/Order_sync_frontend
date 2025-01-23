@@ -7,6 +7,7 @@ import {
   Modal,
   ActivityIndicator,
   Alert,
+  TextInput,
 } from 'react-native';
 import { styles } from './styles/styles';
 import { ScrollView } from 'react-native-virtualized-view'
@@ -121,6 +122,7 @@ const DistributorOrdersScreen = () => {
   const [startPickerVisible, setStartPickerVisible] = useState(false);
   const [updatingPayment, setUpdatingPayment] = useState(false);
   const [filteredOrders, setFilteredOrders] = useState<Order[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
   const router = useRouter();
 
   // Partial Payment States
@@ -212,6 +214,21 @@ const DistributorOrdersScreen = () => {
       return deliveryDate.getTime() === start.getTime();
     });
 
+    setFilteredOrders(filtered);
+  };
+
+  //search functionality
+
+  const filterOrdersByShopkeeper = () => {
+    if (!searchQuery) {
+      setFilteredOrders(orders);
+      return;
+    }
+  
+    const filtered = orders.filter(order =>
+      order.shopkeeper.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  
     setFilteredOrders(filtered);
   };
 
@@ -476,6 +493,17 @@ const DistributorOrdersScreen = () => {
           onChange={handleStartDateChange}
         />
       )}
+      <View style={styles.searchContainer}>
+  <TextInput
+    style={styles.searchInput}
+    placeholder="Search by Shopkeeper Name"
+    value={searchQuery}
+    onChangeText={text => {
+      setSearchQuery(text);
+      filterOrdersByShopkeeper(); // Call the filter function on text change
+    }}
+  />
+</View>
       <FlatList
         data={filteredOrders}
         renderItem={renderOrderItem}
