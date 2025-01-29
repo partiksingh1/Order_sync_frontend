@@ -61,6 +61,12 @@ interface Product {
     price: number;
   }[];
 }
+interface Category {
+  id: string; // Assuming the ID is a string; adjust if it's a number
+  name: string;
+  products: Product[]; // Array of products related to this category
+}
+
 
 interface Entity {
   id: number;
@@ -184,9 +190,11 @@ const CreateOrder = () => {
   const [showAcknowledgmentModal, setShowAcknowledgmentModal] = useState(false);
   const [formData, setFormData] = useState<OrderFormData>(INITIAL_FORM_STATE);
   const [loading, setLoading] = useState(false);
+  const [Category, setCategory] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [quantity, setQuantity] = useState<number>(1);
   const [shopkeepers, setShopkeepers] = useState<Entity[]>([]);
   const [distributors, setDistributors] = useState<Entity[]>([]);
@@ -194,7 +202,7 @@ const CreateOrder = () => {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showDueDatePicker, setShowDueDatePicker] = useState(false);
   const [errors, setErrors] = useState<Partial<Record<keyof OrderFormData, string>>>({});
-  const [itemModalStep, setItemModalStep] = useState<'product' | 'variant' | 'quantity'>('product');
+  const [itemModalStep, setItemModalStep] = useState<'category' | 'product' | 'variant' | 'quantity'>('product');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // API Functions
@@ -212,12 +220,13 @@ const CreateOrder = () => {
       const baseURL = process.env.EXPO_PUBLIC_API_URL;
       const headers = { Authorization: `Bearer ${token}` };
 
-      const [productsRes, shopkeepersRes, distributorsRes] = await Promise.all([
+      const [categoryRes,productsRes, shopkeepersRes, distributorsRes] = await Promise.all([
+        axios.get(`${baseURL}/salesperson/get-category`, { headers }),
         axios.get(`${baseURL}/salesperson/get-products`, { headers }),
         axios.get(`${baseURL}/salesperson/${parsedUser.id}/shops`, { headers }),
         axios.get(`${baseURL}/salesperson/get-distributors`, { headers })
       ]);
-
+      setCategory(categoryRes.data);
       setProducts(productsRes.data);
       setShopkeepers(shopkeepersRes.data);
       setDistributors(distributorsRes.data);
@@ -334,6 +343,7 @@ const CreateOrder = () => {
     setItemModalStep('product');
     setQuantity(1);
     setSelectedProduct(null);
+
     setSelectedVariant(null);
   }, [selectedProduct, selectedVariant, quantity]);
 
@@ -670,7 +680,7 @@ const CreateOrder = () => {
             style={styles.addButton}
             onPress={() => {
               setModalVisible(true);
-              setItemModalStep('product');
+              setItemModalStep('category');
             }}
           >
             <Ionicons name="add-circle-outline" size={24} color="white" />
@@ -724,7 +734,9 @@ const CreateOrder = () => {
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>
-                {itemModalStep === 'product'
+              {itemModalStep === 'category'
+                  ? 'Select Category'
+                  : itemModalStep === 'product'
                   ? 'Select Product'
                   : itemModalStep === 'variant'
                   ? 'Select Variant'
@@ -735,11 +747,29 @@ const CreateOrder = () => {
                 onPress={() => {
                   setModalVisible(false);
                   setItemModalStep('product');
+                  setSelectedCategory(null);
                 }}
               >
                 <Ionicons name="close" size={24} color="black" />
               </TouchableOpacity>
             </View>
+            {itemModalStep === 'category' && (
+              <FlatList
+                data={Category}
+                keyExtractor={(item) => item.id}
+                renderItem={({ item }) => (
+                  <TouchableOpacity
+                    style={styles.productItem}
+                    onPress={() => {
+                      setSelectedCategory((item.id));
+                      setItemModalStep('product'); // Move to product selection
+                    }}
+                  >
+                    <Text style={styles.productName}>{item.name}</Text>
+                  </TouchableOpacity>
+                )}
+              />
+            )}
 
             {itemModalStep === 'product' && (
               <FlatList

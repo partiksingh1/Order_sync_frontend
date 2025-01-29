@@ -3,7 +3,6 @@ import {
   View, 
   Text, 
   TouchableOpacity, 
-  StyleSheet, 
   FlatList, 
   SafeAreaView, 
   Modal, 
@@ -23,6 +22,7 @@ import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import * as XLSX from 'xlsx';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { Orderstyles } from './styles/styles';
 
 type Order = {
   orderId:string;
@@ -277,40 +277,40 @@ const OrderList = () => {
   const renderOrderItem = ({ item }: { item: Order }) => (
     <Pressable 
       style={({pressed}) => [
-        styles.card,
-        pressed && styles.cardPressed
+        Orderstyles.card,
+        pressed && Orderstyles.cardPressed
       ]}
       onPress={() => openModal(item)}
       android_ripple={{ color: '#e0e0e0' }}
     >
-      <View style={styles.cardHeader}>
-        <Text style={styles.shopName}>Order id: {item.orderId}{'\n'}{item.shopName}</Text>
-        <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) }]}>
-          <Text style={styles.statusText}>{item.status}</Text>
+      <View style={Orderstyles.cardHeader}>
+        <Text style={Orderstyles.shopName}>Order id: {item.orderId}{'\n'}{item.shopName}</Text>
+        <View style={[Orderstyles.statusBadge, { backgroundColor: getStatusColor(item.status) }]}>
+          <Text style={Orderstyles.statusText}>{item.status}</Text>
         </View>
       </View>
 
-      <View style={styles.cardContent}>
-        <View style={styles.infoRow}>
+      <View style={Orderstyles.cardContent}>
+        <View style={Orderstyles.infoRow}>
           <Ionicons name="person-outline" size={16} color="#666" />
-          <Text style={styles.infoText}>{item.employeeName}</Text>
+          <Text style={Orderstyles.infoText}>{item.employeeName}</Text>
         </View>
 
-        <View style={styles.infoRow}>
+        <View style={Orderstyles.infoRow}>
           <Ionicons name="business-outline" size={16} color="#666" />
-          <Text style={styles.infoText}>{item.distributorName}</Text>
+          <Text style={Orderstyles.infoText}>{item.distributorName}</Text>
         </View>
 
-        <View style={styles.infoRow}>
+        <View style={Orderstyles.infoRow}>
           <Ionicons name="calendar-outline" size={16} color="#666" />
-          <Text style={styles.infoText}>
+          <Text style={Orderstyles.infoText}>
             {new Date(item.orderDate).toLocaleDateString()}
           </Text>
         </View>
 
-        <View style={styles.infoRow}>
+        <View style={Orderstyles.infoRow}>
           <Ionicons name="cash-outline" size={16} color="#666" />
-          <Text style={styles.infoText}>
+          <Text style={Orderstyles.infoText}>
             Rs. {item.totalAmount.toFixed(2)}
           </Text>
         </View>
@@ -325,78 +325,78 @@ const OrderList = () => {
       visible={modalVisible}
       onRequestClose={closeModal}
     >
-      <View style={styles.modalContainer}>
-        <View style={styles.modalContent}>
+      <View style={Orderstyles.modalContainer}>
+        <View style={Orderstyles.modalContent}>
           <ScrollView showsVerticalScrollIndicator={false}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Order Details</Text>
-              <TouchableOpacity onPress={closeModal} style={styles.closeButton}>
+            <View style={Orderstyles.modalHeader}>
+              <Text style={Orderstyles.modalTitle}>Order Details</Text>
+              <TouchableOpacity onPress={closeModal} style={Orderstyles.closeButton}>
                 <Ionicons name="close" size={24} color="#666" />
               </TouchableOpacity>
             </View>
 
             {selectedOrder && (
               <>
-                <View style={styles.modalSection}>
-                  <Text style={styles.sectionTitle}>Shop Information</Text>
-                  <Text style={styles.modalDetail}>Shop Name: {selectedOrder.shopName}</Text>
-                  <Text style={styles.modalDetail}>Contact: {selectedOrder.contactNumber}</Text>
+                <View style={Orderstyles.modalSection}>
+                  <Text style={Orderstyles.sectionTitle}>Shop Information</Text>
+                  <Text style={Orderstyles.modalDetail}>Shop Name: {selectedOrder.shopName}</Text>
+                  <Text style={Orderstyles.modalDetail}>Contact: {selectedOrder.contactNumber}</Text>
                 </View>
 
-                <View style={styles.modalSection}>
-                  <Text style={styles.sectionTitle}>Order Information</Text>
-                  <Text style={styles.modalDetail}>Employee: {selectedOrder.employeeName}</Text>
-                  <Text style={styles.modalDetail}>Distributor: {selectedOrder.distributorName}</Text>
-                  <Text style={styles.modalDetail}>
+                <View style={Orderstyles.modalSection}>
+                  <Text style={Orderstyles.sectionTitle}>Order Information</Text>
+                  <Text style={Orderstyles.modalDetail}>Employee: {selectedOrder.employeeName}</Text>
+                  <Text style={Orderstyles.modalDetail}>Distributor: {selectedOrder.distributorName}</Text>
+                  <Text style={Orderstyles.modalDetail}>
                     Order Date: {new Date(selectedOrder.orderDate).toLocaleString()}
                   </Text>
-                  <Text style={styles.modalDetail}>Payment Type: {selectedOrder.paymentType}</Text>
-                  <Text style={styles.modalDetail}>
+                  <Text style={Orderstyles.modalDetail}>Payment Type: {selectedOrder.paymentType}</Text>
+                  <Text style={Orderstyles.modalDetail}>
                     Total Amount: Rs. {selectedOrder.totalAmount.toFixed(2)}
                   </Text>
                 </View>
                 {selectedOrder?.partialPayment ? (
-                    <View style={styles.modalSection}>
-                      <Text style={styles.sectionTitle}>Partial Payment Details</Text>
-                      <Text style={styles.modalDetail}>
+                    <View style={Orderstyles.modalSection}>
+                      <Text style={Orderstyles.sectionTitle}>Partial Payment Details</Text>
+                      <Text style={Orderstyles.modalDetail}>
                         Advance: ₹{selectedOrder.partialPayment.initialAmount.toLocaleString()}
                       </Text>
-                      <Text style={styles.modalDetail}>
+                      <Text style={Orderstyles.modalDetail}>
                         Balance Amount: ₹{selectedOrder.partialPayment.remainingAmount.toLocaleString()}
                       </Text>
-                      <Text style={styles.modalDetail}>
+                      <Text style={Orderstyles.modalDetail}>
                         Due Date: {new Date(selectedOrder.partialPayment.dueDate).toLocaleDateString()}
                       </Text>
-                      <Text style={styles.modalDetail}>
+                      <Text style={Orderstyles.modalDetail}>
                         Payment Status: {selectedOrder.partialPayment.paymentStatus}
                       </Text>
                     </View>
                   ) : (
-                    <View style={styles.modalSection}>
-                      <Text style={styles.infoText}>No partial payment details available.</Text>
+                    <View style={Orderstyles.modalSection}>
+                      <Text style={Orderstyles.infoText}>No partial payment details available.</Text>
                     </View>
                   )}
 
 
-                <View style={styles.modalSection}>
-                  <Text style={styles.sectionTitle}>Delivery Information</Text>
-                  <Text style={styles.modalDetail}>
+                <View style={Orderstyles.modalSection}>
+                  <Text style={Orderstyles.sectionTitle}>Delivery Information</Text>
+                  <Text style={Orderstyles.modalDetail}>
                     Delivery Date: {new Date(selectedOrder.deliveryDate).toLocaleString()}
                   </Text>
-                  <Text style={styles.modalDetail}>Delivery Slot: {selectedOrder.deliverySlot}</Text>
-                  <View style={[styles.statusBadge, { backgroundColor: getStatusColor(selectedOrder.status) }]}>
-                    <Text style={styles.statusText}>{selectedOrder.status}</Text>
+                  <Text style={Orderstyles.modalDetail}>Delivery Slot: {selectedOrder.deliverySlot}</Text>
+                  <View style={[Orderstyles.statusBadge, { backgroundColor: getStatusColor(selectedOrder.status) }]}>
+                    <Text style={Orderstyles.statusText}>{selectedOrder.status}</Text>
                   </View>
                 </View>
 
-                <View style={styles.modalSection}>
-                  <Text style={styles.sectionTitle}>Products</Text>
+                <View style={Orderstyles.modalSection}>
+                  <Text style={Orderstyles.sectionTitle}>Products</Text>
                   {selectedOrder.products.map((product, index) => (
-                    <View key={index} style={styles.productItem}>
-                      <Text style={styles.productName}>
+                    <View key={index} style={Orderstyles.productItem}>
+                      <Text style={Orderstyles.productName}>
                         {product.productName} ({product.variant})
                       </Text>
-                      <Text style={styles.productQuantity}>x{product.quantity}</Text>
+                      <Text style={Orderstyles.productQuantity}>x{product.quantity}</Text>
                     </View>
                   ))}
                 </View>
@@ -410,74 +410,74 @@ const OrderList = () => {
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
+      <View style={Orderstyles.loadingContainer}>
         <ActivityIndicator size="large" color="#007AFF" />
-        <Text style={styles.loadingText}>Loading orders...</Text>
+        <Text style={Orderstyles.loadingText}>Loading orders...</Text>
       </View>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={Orderstyles.container}>
       <StatusBar backgroundColor="#fff" barStyle="dark-content" />
       
-      <View style={styles.header}>
+      <View style={Orderstyles.header}>
         <TouchableOpacity
           onPress={() => router.replace('/(app)/admin/dashboard')}
-          style={styles.backButton}
+          style={Orderstyles.backButton}
         >
           <Ionicons name="arrow-back" size={24} color="#007AFF" />
         </TouchableOpacity>
-        <Text style={styles.title}>Orders</Text>
+        <Text style={Orderstyles.title}>Orders</Text>
       </View>
 
-      <View style={styles.filterSection}>
-        <View style={styles.dateContainer}>
+      <View style={Orderstyles.filterSection}>
+        <View style={Orderstyles.dateContainer}>
           <TouchableOpacity 
-            style={styles.dateButton}
+            style={Orderstyles.dateButton}
             onPress={() => setStartPickerVisible(true)}
           >
             <Ionicons name="calendar-outline" size={20} color="#007AFF" />
-            <Text style={styles.dateButtonText}>
+            <Text style={Orderstyles.dateButtonText}>
               {startDate || "Start Date"}
             </Text>
           </TouchableOpacity>
 
           <TouchableOpacity 
-            style={styles.dateButton}
+            style={Orderstyles.dateButton}
             onPress={() => setEndPickerVisible(true)}
           >
             <Ionicons name="calendar-outline" size={20} color="#007AFF" />
-            <Text style={styles.dateButtonText}>
+            <Text style={Orderstyles.dateButtonText}>
               {endDate || "End Date"}
             </Text>
           </TouchableOpacity>
         </View>
 
-        <View style={styles.filterButtons}>
+        <View style={Orderstyles.filterButtons}>
           <TouchableOpacity 
-            style={[styles.button, styles.filterButton]} 
+            style={[Orderstyles.button, Orderstyles.filterButton]} 
             onPress={filterOrdersByDate}
           >
             <Ionicons name="search-outline" size={20} color="#fff" />
-            <Text style={styles.buttonText}>Filter</Text>
+            <Text style={Orderstyles.buttonText}>Filter</Text>
           </TouchableOpacity>
 
           <TouchableOpacity 
-            style={[styles.button, styles.resetButton]} 
+            style={[Orderstyles.button, Orderstyles.resetButton]} 
             onPress={resetFilters}
           >
             <Ionicons name="refresh-outline" size={20} color="#fff" />
-            <Text style={styles.buttonText}>Reset</Text>
+            <Text style={Orderstyles.buttonText}>Reset</Text>
           </TouchableOpacity>
         </View>
 
         <TouchableOpacity 
-          style={[styles.button, styles.exportButton]} 
+          style={[Orderstyles.button, Orderstyles.exportButton]} 
           onPress={exportOrdersToXLSX}
         >
           <Ionicons name="download-outline" size={20} color="#fff" />
-          <Text style={styles.buttonText}>Export Orders</Text>
+          <Text style={Orderstyles.buttonText}>Export Orders</Text>
         </TouchableOpacity>
       </View>
 
@@ -503,7 +503,7 @@ const OrderList = () => {
         data={filteredOrders}
         renderItem={renderOrderItem}
         keyExtractor={(item, index) => index.toString()}
-        contentContainerStyle={styles.list}
+        contentContainerStyle={Orderstyles.list}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
@@ -514,206 +514,5 @@ const OrderList = () => {
     </SafeAreaView>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#FFF',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#f5f5f5',
-  },
-  loadingText: {
-    marginTop: 10,
-    color: '#666',
-    fontSize: 16,
-},
-header: {
-  flexDirection: 'row',
-  alignItems: 'center',
-  padding: 20,
-  paddingTop: 50,
-},
-backButton: {
-  padding: 8,
-},
-title: {
-  fontSize: 24,
-  fontWeight: 'bold',
-  flex: 1,
-  textAlign: 'center',
-  marginRight: 40, // Compensate for back button
-},
-filterSection: {
-    backgroundColor: '#fff',
-    padding: 16,
-    elevation: 2,
-    marginBottom: 8,
-},
-dateContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-},
-dateButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#f0f0f0',
-    padding: 12,
-    borderRadius: 8,
-    flex: 0.48,
-},
-dateButtonText: {
-    marginLeft: 8,
-    color: '#333',
-    fontSize: 14,
-},
-filterButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-},
-button: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 12,
-    borderRadius: 8,
-    elevation: 1,
-},
-filterButton: {
-    backgroundColor: '#007AFF',
-    flex: 0.48,
-},
-resetButton: {
-    backgroundColor: '#FF3B30',
-    flex: 0.48,
-},
-exportButton: {
-    backgroundColor: '#34C759',
-},
-buttonText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '500',
-    marginLeft: 8,
-},
-list: {
-    padding: 16,
-},
-card: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    marginBottom: 12,
-    elevation: 2,
-    overflow: 'hidden',
-},
-cardPressed: {
-    opacity: 0.7,
-},
-cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-},
-shopName: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
-    flex: 1,
-},
-statusBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    marginLeft: 8,
-},
-statusText: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: '500',
-},
-cardContent: {
-    padding: 16,
-},
-infoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-},
-infoText: {
-    marginLeft: 8,
-    color: '#666',
-    fontSize: 14,
-},
-modalContainer: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
-},
-modalContent: {
-    backgroundColor: '#fff',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    maxHeight: '80%',
-    paddingBottom: 20,
-},
-modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-},
-modalTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-},
-closeButton: {
-    padding: 8,
-},
-modalSection: {
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-},
-sectionTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 8,
-},
-modalDetail: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 8,
-},
-productItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-},
-productName: {
-    fontSize: 14,
-    color: '#333',
-    flex: 1,
-},
-productQuantity: {
-    fontSize: 14,
-    color: '#666',
-    marginLeft: 16,
-}
-});
 
 export default OrderList;

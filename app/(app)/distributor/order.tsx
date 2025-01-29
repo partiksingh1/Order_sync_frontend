@@ -8,7 +8,9 @@ import {
   ActivityIndicator,
   Alert,
   TextInput,
+  Image,
 } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { styles } from './styles/styles';
 import { ScrollView } from 'react-native-virtualized-view'
 import { Picker } from '@react-native-picker/picker';
@@ -123,7 +125,9 @@ const DistributorOrdersScreen = () => {
   const [updatingPayment, setUpdatingPayment] = useState(false);
   const [filteredOrders, setFilteredOrders] = useState<Order[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [image, setImage] = useState<string | null>(null);
   const router = useRouter();
+  const [showImageUploadModal, setShowImageUploadModal] = useState(false);
 
   // Partial Payment States
   const [showPartialPaymentForm, setShowPartialPaymentForm] = useState(false);
@@ -281,7 +285,7 @@ const DistributorOrdersScreen = () => {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
-      console.log("ordersResponse data orders", ordersResponse.data.orders);
+      // console.log("ordersResponse data orders", ordersResponse.data.orders);
 
       //Fetch shopkeeper balances
       const balancesResponse = await axios.get(
@@ -308,7 +312,7 @@ const DistributorOrdersScreen = () => {
       });
 
       //Check if orders are mapped properly
-      console.log("Orders with balances: ", ordersWithBalances);
+      // console.log("Orders with balances: ", ordersWithBalances);
 
       setOrders(ordersWithBalances);
       setFilteredOrders(ordersWithBalances);
@@ -339,80 +343,165 @@ const DistributorOrdersScreen = () => {
 
   const handleStatusChange = useCallback((selectedStatus: string) => {
     setStatus(selectedStatus);
+    if(selectedStatus=="DELIVERED"){
+      setShowImageUploadModal(true);
+    }
     setConfirmationVisible(true);
   }, []);
+  
 
-  const handleUpdateOrder = useCallback(async () => {
-    if (!selectedOrder) return;
 
-    setUpdating(true);
-    try {
-      const token = await AsyncStorage.getItem('token');
-      const response = await axios.put(
-        `${process.env.EXPO_PUBLIC_API_URL}/distributor/orders/${selectedOrder.id}`,
-        {
-          status,
-          deliveryDate: deliveryDate.toISOString(),
-        },
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
+  const handleImagePicker = async (useCamera: boolean) => {
+    const permissionMethod = useCamera 
+        ? ImagePicker.requestCameraPermissionsAsync 
+        : ImagePicker.requestMediaLibraryPermissionsAsync;
 
-      if (response.status === 200) {
-        Alert.alert('Success', 'Order updated successfully!');
-        await fetchOrders();
-        setModalVisible(false);
-        setConfirmationVisible(false);
-      }
-    } catch (error: any) {
-      Alert.alert('Error', error.response?.data?.message || 'Failed to update order');
-    } finally {
-      setUpdating(false);
+    const { granted } = await permissionMethod();
+    if (!granted) {
+        Alert.alert('Permission Required', `Permission to access ${useCamera ? 'camera' : 'media library'} is required!`);
+        return;
     }
-  }, [selectedOrder, status, deliveryDate, fetchOrders]);
 
-  const handleQtyChange = useCallback(async () => {
-    if (!selectedOrder || !quantityFormData) return;
+    const result = await (useCamera 
+        ? ImagePicker.launchCameraAsync
+        : ImagePicker.launchImageLibraryAsync)({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        quality: 1,
+    });
 
-    setUpdating(true);  // Show loading spinner or indicator
-
-    // Map the items from the form data, ensuring productId, variantId, and quantity are included
-    const updatedItems = quantityFormData.items.map((item) => ({
-      productId: item.productId,  // Ensure this is set
-      variantId: item.variantId,  // Ensure this is set
-      quantity: item.quantity,    // The updated quantity from form data
-    }));
-
-    console.log("updatedItems", updatedItems);  // Check the items here
-
-    try {
-      const token = await AsyncStorage.getItem('token');
-
-      const response = await axios.put(
-        `${process.env.EXPO_PUBLIC_API_URL}/distributor/orders/${selectedOrder.id}`,
-        {
-          items: updatedItems,  // Send the updated quantities of items
-        },
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-
-      if (response.status === 200) {
-        Alert.alert('Success', 'Order updated successfully!');
-        await fetchOrders();  // Refresh orders after update
-        setShowQtyChange(false);  // Close the modal
-        setQtyConfirmVisible(false);  // Hide confirmation if applicable
-      }
-    } catch (error: any) {
-      Alert.alert('Error', error.response?.data?.message || 'Failed to update order');
-    } finally {
-      setUpdating(false);  // Hide loading indicator
+    if (!result.canceled && result.assets[0].uri) {
+        setImage(result.assets[0].uri);
+        setShowImageUploadModal(false); // Close the modal after selecting an image
+        await handleUpdatePhoto(); // Call the photo update function
     }
-  }, [selectedOrder, quantityFormData, fetchOrders]);
+};
 
+const handleUpdatePhoto = async () => {
+  console.log("API called");
 
+  try {
+      const token = await AsyncStorage.getItem('token');
+      if (!image) {
+          Alert.alert('Error', 'Please select an image of the shopkeeper.');
+          return;
+      }
+
+      const formDataToSend = new FormData();
+
+      // Append image if exists
+      if (image) {
+          const imageFileName = image.split('/').pop() || 'image.jpg';
+          const match = /\.(\w+)$/.exec(imageFileName);
+          const imageType = match ? `image/${match[1]}` : 'image/jpeg';
+          formDataToSend.append('file', {
+              uri: image,
+              name: imageFileName,
+              type: imageType,
+          } as any);
+
+          // Make sure to replace :orderId with the actual order ID
+          const response = await axios.put(
+              `${process.env.EXPO_PUBLIC_API_URL}/distributor/orders/${selectedOrder?.id}/confirmation-photo`, // Use selectedOrder.id here
+              formDataToSend,
+              {
+                  headers: {
+                      'Accept': 'application/json',
+                      'Content-Type': 'multipart/form-data',
+                      'Authorization': `Bearer ${token}`,
+                  },
+              }
+          );
+
+          // Handle the response
+          if (response.status === 200) {
+              Alert.alert('Success', 'Photo uploaded successfully!');
+              // Optionally, you can refresh the orders or perform other actions here
+          } else {
+              Alert.alert('Error', 'Failed to upload photo. Please try again.');
+          }
+      }
+  } catch (error: any) {
+      Alert.alert('Error', error.response?.data?.message || 'Failed to upload photo');
+      console.error('Error uploading photo:', error);
+  }
+};
+const handleUpdateOrder = useCallback(async () => {
+  if (!selectedOrder) return;
+
+  setUpdating(true);
+  try {
+    const token = await AsyncStorage.getItem('token');
+    
+    // Prepare the payload
+    const payload = {
+      status,
+      deliveryDate: deliveryDate.toISOString(),
+    };
+
+    const response = await axios.put(
+      `${process.env.EXPO_PUBLIC_API_URL}/distributor/orders/${selectedOrder.id}`,
+      payload,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    );
+
+    if (response.status === 200) {
+      console.log(response.data);
+      Alert.alert('Success', 'Order updated successfully!');
+      await fetchOrders();
+      setModalVisible(false);
+      setConfirmationVisible(false);
+    }
+  } catch (error: any) {
+    Alert.alert('Error', error.response?.data?.message || 'Failed to update order');
+  } finally {
+    setUpdating(false);
+  }
+}, [selectedOrder, status, deliveryDate, fetchOrders]);
+
+const handleQtyChange = useCallback(async () => {
+  if (!selectedOrder || !quantityFormData) return;
+
+  setUpdating(true);  // Show loading spinner or indicator
+
+  // Map the items from the form data, ensuring productId, variantId, and quantity are included
+  const updatedItems = quantityFormData.items.map((item) => ({
+    productId: item.productId,  // Ensure this is set
+    variantId: item.variantId || null,  // Ensure this is set
+    quantity: item.quantity,    // The updated quantity from form data
+  }));
+
+  try {
+    const token = await AsyncStorage.getItem('token');
+
+    // Prepare the payload
+    const payload = {
+      items: updatedItems,  // Send the updated quantities of items
+    };
+
+    const response = await axios.put(
+      `${process.env.EXPO_PUBLIC_API_URL}/distributor/orders/${selectedOrder.id}`,
+      payload,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    );
+
+    if (response.status === 200) {
+      Alert.alert('Success', 'Order items updated successfully!');
+      await fetchOrders();  // Refresh orders after update
+      setShowQtyChange(false);  // Close the modal
+      setQtyConfirmVisible(false);  // Hide confirmation if applicable
+    }
+  } catch (error: any) {
+    console.log(error);
+    Alert.alert('Error', error.response?.data?.message || 'Failed to update order items');
+  } finally {
+    setUpdating(false);  // Hide loading indicator
+  }
+}, [selectedOrder, quantityFormData, fetchOrders]);
   // const sortedOrders = useMemo(() => {
   //   return [...orders].sort((a, b) => {
   //     // Sort by status priority (Pending > Delivered > Cancelled)
@@ -466,7 +555,6 @@ const DistributorOrdersScreen = () => {
             </Text>
           </TouchableOpacity>
         </View>
-
         <View style={styles.filterButtons}>
           <TouchableOpacity
             style={[styles.button, styles.filterButton]}
@@ -660,6 +748,27 @@ const DistributorOrdersScreen = () => {
           </View>
         </Modal>
       )}
+      <Modal
+    animationType="slide"
+    transparent={true}
+    visible={showImageUploadModal}
+    onRequestClose={() => setShowImageUploadModal(false)}
+>
+    <View style={styles.modalContainer}>
+        <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Upload Confirmation Photo</Text>
+            <TouchableOpacity onPress={() => handleImagePicker(true)} style={styles.partialPaymentButton}>
+                <Text style={styles.buttonText}>Take Photo</Text>
+            </TouchableOpacity>
+            {/* <TouchableOpacity onPress={() => handleImagePicker(false)}>
+                <Text style={styles.buttonText2}>Choose from Gallery</Text>
+            </TouchableOpacity> */}
+            <TouchableOpacity onPress={() => setShowImageUploadModal(false)} style={styles.partialPaymentButton}>
+                <Text style={styles.buttonText}>Cancel</Text>
+            </TouchableOpacity>
+        </View>
+    </View>
+</Modal>
 
       <QuantityUpdateConfirmationModal
         visible={qtyConfirmVisible}

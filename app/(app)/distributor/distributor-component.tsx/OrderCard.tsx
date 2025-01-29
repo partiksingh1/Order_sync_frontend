@@ -80,7 +80,7 @@ export const OrderCard = React.memo(({ item, onPress }: OrderItemProps) => {
           </Text>
         )}
       </View>
-      <Text style={styles.orderDetail}>Order ID: #{item.id}</Text>
+      <Text style={styles.orderDetail}>ID: #{item.id}</Text>
         <Text style={styles.orderNumber}>Shopkeeper: {item.shopkeeper.name}</Text>
         <Text style={styles.orderDetail}>Contact: {item.shopkeeper.contactNumber}</Text>
         <Text style={styles.orderDetail}>Delivery: {formattedDate}</Text>

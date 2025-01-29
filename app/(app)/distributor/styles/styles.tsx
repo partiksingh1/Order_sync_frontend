@@ -119,6 +119,11 @@ export const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: '500',
     },
+    buttonText2: {
+        color: '#000000',
+        fontSize: 16,
+        fontWeight: '500',
+    },
     disabledButton: {
         opacity: 0.7,
     },
@@ -292,5 +297,85 @@ export const styles = StyleSheet.create({
         flex: 1,
         paddingVertical: 12,
         fontSize: 16,
+      },
+      imagePreview: {
+        width: '100%',
+        height: 200,
+        borderRadius: 10,
+        borderWidth: 1,
+        borderColor: '#ccc',
+      },
+      imagePickerContainer: {
+        borderWidth: 1,
+        borderColor: '#ccc',
+        borderRadius: 10,
+        padding: 20,
+        marginBottom: 15,
+        alignItems: 'center',
+      },
+      clearButton: {
+        backgroundColor: '#FF0000',
+        padding: 10,
+        borderRadius: 10,
+        alignItems: 'center',
+        marginVertical: 10,
+        flexDirection: 'row',
+      },
+      clearButtonText: {
+        color: '#FFF',
+        fontSize: 16,
+        marginLeft: 10,
+      },
+      formContainer: {
+        marginBottom: 20,
+      },
+      inputCard: {
+        marginBottom: 15,
+      },
+      label: {
+        fontSize: 16,
+        fontWeight: '600',
+        marginBottom: 8,
+        color: '#333',
+      },
+      textArea: {
+        backgroundColor: 'white',
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: '#ddd',
+        padding: 12,
+        marginBottom: 1,
+        height: 60,
+        textAlignVertical: 'top',
+      },
+      pickerContainer: {
+        borderWidth: 1,
+        borderColor: '#ddd',
+        borderRadius: 8,
+        marginBottom: 1,
+      },
+      imagePicker: {
+        borderWidth: 1,
+        borderColor: '#ccc',
+        borderRadius: 10,
+        padding: 20,
+        marginBottom: 15,
+        alignItems: 'center',
+      },
+      imagePlaceholder: {
+        color: '#A9A9A9',
+        textAlign: 'center',
+      },
+
+      submitButton: {
+        backgroundColor: '#28A745',
+        padding: 15,
+        borderRadius: 10,
+        alignItems: 'center',
+      },
+      submitButtonText: {
+        color: '#FFF',
+        fontSize: 18,
+        fontWeight: 'bold',
       },
 });

@@ -207,12 +207,16 @@ const CreateShopkeeperForm = () => {
         ))}
           {image &&(
             <Image source={{ uri: image }} style={styles.imagePreview} />
-          )}
+          )}        
 
-        <TouchableOpacity onPress={() => handleImagePicker(true)} style={styles.button}>
-          <Ionicons name="camera" size={24} color="white" />
-          <Text style={styles.buttonText}>FRONT SHOP IMAGE</Text>
-        </TouchableOpacity>
+{
+  !image && (
+    <TouchableOpacity onPress={() => handleImagePicker(true)} style={styles.button}>
+      <Ionicons name="camera" size={24} color="white" />
+      <Text style={styles.buttonText}>FRONT SHOP IMAGE</Text>
+    </TouchableOpacity>
+  )
+}
 
         {image && (
           <TouchableOpacity onPress={() => setImage(null)} style={styles.clearButton}>
